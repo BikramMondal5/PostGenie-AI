@@ -36,12 +36,6 @@ ls .kiro/specs/ai-social-content-manager
 
 > ℹ️ The current repository focuses on product requirements and design. Implementation steps will be added as the app code ships.
 
-## 📸 Screenshot
-
-_🖼️ Screenshot placeholder — swap in the live dashboard capture once the UI is available._
-
-![PostGenie-AI Dashboard Preview](https://via.placeholder.com/1200x600.png?text=PostGenie-AI+Dashboard+Preview)
-
 ## 🚀 How to Use
 - 🔑 Connect your social accounts during onboarding
 - 🧠 Let PostGenie-AI analyze your existing posts to learn your voice
