@@ -38,6 +38,8 @@ ls .kiro/specs/ai-social-content-manager
 
 ## 📸 Screenshot
 
+_🖼️ Screenshot placeholder — swap in the live dashboard capture once the UI is available._
+
 ![PostGenie-AI Dashboard Preview](https://via.placeholder.com/1200x600.png?text=PostGenie-AI+Dashboard+Preview)
 
 ## 🚀 How to Use
