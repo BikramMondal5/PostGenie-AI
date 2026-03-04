@@ -1,4 +1,5 @@
 import React, { useState, useRef, useCallback, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   User,
@@ -15,19 +16,8 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-} from "@/components/ui/sheet";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Switch } from "@/components/ui/switch";
-import { Label } from "@/components/ui/label";
 
 const cn = (...classes: (string | undefined | null | false)[]) =>
   classes.filter(Boolean).join(" ");
@@ -104,9 +94,6 @@ const ConnectionLine: React.FC<ConnectionLineProps> = ({
     </svg>
   );
 };
-
-// Export components
-export { DottedGridBackground, ConnectionLine, PlatformCard, InputNode, SettingsPanel };
 
 // Platform Card Component
 interface PlatformCardProps {
@@ -359,84 +346,13 @@ const InputNode: React.FC<InputNodeProps> = ({
   );
 };
 
-// Settings Panel Component
-const SettingsPanel: React.FC = () => {
-  const [connectedPlatforms, setConnectedPlatforms] = useState({
-    twitter: true,
-    linkedin: true,
-    instagram: false,
-  });
-
-  return (
-    <div className="space-y-6">
-      <div>
-        <h3 className="text-lg font-semibold mb-4 text-gray-900">
-          Connected Platforms
-        </h3>
-        <div className="space-y-4">
-          <div className="flex items-center justify-between p-3 rounded-lg border border-gray-200 bg-gray-50">
-            <div className="flex items-center gap-3">
-              <Twitter className="w-5 h-5 text-black" />
-              <Label htmlFor="twitter" className="text-gray-900">
-                X (Twitter)
-              </Label>
-            </div>
-            <Switch
-              id="twitter"
-              checked={connectedPlatforms.twitter}
-              onCheckedChange={(checked) =>
-                setConnectedPlatforms({ ...connectedPlatforms, twitter: checked })
-              }
-            />
-          </div>
-          <div className="flex items-center justify-between p-3 rounded-lg border border-gray-200 bg-gray-50">
-            <div className="flex items-center gap-3">
-              <Linkedin className="w-5 h-5 text-blue-600" />
-              <Label htmlFor="linkedin" className="text-gray-900">
-                LinkedIn
-              </Label>
-            </div>
-            <Switch
-              id="linkedin"
-              checked={connectedPlatforms.linkedin}
-              onCheckedChange={(checked) =>
-                setConnectedPlatforms({ ...connectedPlatforms, linkedin: checked })
-              }
-            />
-          </div>
-          <div className="flex items-center justify-between p-3 rounded-lg border border-gray-200 bg-gray-50">
-            <div className="flex items-center gap-3">
-              <Instagram className="w-5 h-5 text-pink-600" />
-              <Label htmlFor="instagram" className="text-gray-900">
-                Instagram
-              </Label>
-            </div>
-            <Switch
-              id="instagram"
-              checked={connectedPlatforms.instagram}
-              onCheckedChange={(checked) =>
-                setConnectedPlatforms({ ...connectedPlatforms, instagram: checked })
-              }
-            />
-          </div>
-        </div>
-      </div>
-      <div>
-        <Button variant="outline" className="w-full">
-          <Download className="w-4 h-4 mr-2" />
-          Export Dataset
-        </Button>
-      </div>
-    </div>
-  );
-};
-
 // Main Component
 interface PostGenieAIProps {
   onLogout: () => void;
 }
 
 const PostGenieAI: React.FC<PostGenieAIProps> = ({ onLogout }) => {
+  const navigate = useNavigate();
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedPosts, setGeneratedPosts] = useState<
     Array<{
@@ -462,7 +378,7 @@ const PostGenieAI: React.FC<PostGenieAIProps> = ({ onLogout }) => {
 
     const newPosts = platforms.map((platform, index) => ({
       platform,
-      content: `${prompt}\n\nOptimized for ${platform}. This is AI-generated content tailored for maximum engagement on this platform. #AI #ContentGeneration #PostGenieAI`,
+      content: `${prompt} \n\nOptimized for ${platform}. This is AI-generated content tailored for maximum engagement on this platform. #AI #ContentGeneration #PostGenieAI`,
       position: {
         x: inputNodePosition.x + 600,
         y: inputNodePosition.y + index * 280 - 200,
@@ -518,34 +434,20 @@ const PostGenieAI: React.FC<PostGenieAIProps> = ({ onLogout }) => {
             </div>
           </div>
           <div className="flex items-center gap-3">
-            <Sheet>
-              <SheetTrigger asChild>
-                <Button variant="outline" size="sm">
-                  <Plus className="w-4 h-4 mr-2" />
-                  Connect Accounts
-                </Button>
-              </SheetTrigger>
-              <SheetContent className="bg-white">
-                <SheetHeader>
-                  <SheetTitle className="text-gray-900">Settings</SheetTitle>
-                  <SheetDescription className="text-gray-600">
-                    Manage your connected platforms and preferences
-                  </SheetDescription>
-                </SheetHeader>
-                <div className="mt-6">
-                  <SettingsPanel />
-                </div>
-              </SheetContent>
-            </Sheet>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => navigate('/settings')}
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              Connect Accounts
+            </Button>
             <Button variant="ghost" size="icon" onClick={onLogout}>
               <LogIn className="w-5 h-5 text-gray-700 hover:text-pink-600 rotate-180" />
             </Button>
-            <Avatar>
-              <AvatarImage src="" />
-              <AvatarFallback className="bg-pink-100 text-pink-600">
-                <User className="w-5 h-5" />
-              </AvatarFallback>
-            </Avatar>
+            <div className="w-8 h-8 rounded-full bg-pink-100 flex items-center justify-center text-pink-600">
+              <User className="w-5 h-5" />
+            </div>
           </div>
         </div>
       </nav>
@@ -614,4 +516,5 @@ const PostGenieAI: React.FC<PostGenieAIProps> = ({ onLogout }) => {
   );
 };
 
+export { DottedGridBackground, ConnectionLine, PlatformCard, InputNode };
 export default PostGenieAI;

@@ -43,7 +43,7 @@
     - Test JWT token generation
     - _Requirements: 1.1_
 
-- [ ] 3. Implement OAuth integration for social media platforms
+- [ ] 3. Implement OAuth integration (for Publishing only)
   - [ ] 3.1 Create PlatformConnection data model
     - Implement connection storage with encrypted tokens
     - _Requirements: 1.2, 1.3_
@@ -54,29 +54,18 @@
     - Store access and refresh tokens securely
     - _Requirements: 1.2_
 
-  - [ ]* 3.3 Write property test for OAuth flow completion
-    - **Feature: ai-social-content-manager, Property 1: OAuth flow completion**
-    - **Validates: Requirements 1.2, 1.3, 1.4**
+- [ ] 4. Implement Manual Training & Voice Analysis
+  - [ ] 4.1 Create Training Data UI
+    - Build interface for users to paste past posts per platform
+    - _Requirements: 2.1_
 
-  - [ ] 3.4 Implement post fetching from social media APIs
-    - Create API wrappers for LinkedIn, X/Twitter, Instagram, Facebook
-    - Fetch 10 most recent posts per platform
-    - Store raw post data in DynamoDB
-    - _Requirements: 1.3, 1.4_
-
-  - [ ]* 3.5 Write property test for platform connection features
-    - **Feature: ai-social-content-manager, Property 2: Platform connection enables features**
-    - **Validates: Requirements 1.5**
-
-- [ ] 4. Implement voice profile analysis
-  - [ ] 4.1 Create VoiceProfile data model
-    - Implement voice profile storage and retrieval
+  - [ ] 4.2 Implement Post storage service
+    - Store manually provided past posts in DynamoDB
     - _Requirements: 2.3, 2.4_
 
-  - [ ] 4.2 Implement post analysis service
-    - Extract writing characteristics (tone, vocabulary, patterns)
+  - [ ] 4.3 Implement voice profile analysis service
+    - Extract writing characteristics (tone, vocabulary, patterns) from pasted text
     - Classify communication style
-    - Calculate metrics (sentence length, complexity)
     - _Requirements: 2.1, 2.2_
 
   - [ ]* 4.3 Write property test for voice profile extraction

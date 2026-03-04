@@ -1,6 +1,10 @@
 import { useState, useEffect } from 'react'
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import PostGenieAI from './components/PostGenieAI'
 import Auth from './components/Auth'
+import SettingsLayout from './components/Settings/SettingsLayout'
+import Integrations from './components/Settings/Integrations'
+import VoiceTrainer from './components/Settings/VoiceTrainer'
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false)
@@ -37,7 +41,20 @@ function App() {
     return <Auth onAuthSuccess={handleAuthSuccess} />
   }
 
-  return <PostGenieAI onLogout={handleLogout} />
+  return (
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<PostGenieAI onLogout={handleLogout} />} />
+        <Route path="/settings" element={<SettingsLayout onLogout={handleLogout} />}>
+          <Route index element={<Navigate to="/settings/integrations" replace />} />
+          <Route path="integrations" element={<Integrations />} />
+          <Route path="train" element={<VoiceTrainer />} />
+          <Route path="account" element={<div className="p-4 text-gray-500">Account settings coming soon...</div>} />
+        </Route>
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </BrowserRouter>
+  )
 }
 
 export default App
