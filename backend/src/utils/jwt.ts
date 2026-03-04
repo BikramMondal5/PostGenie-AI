@@ -1,6 +1,6 @@
 import jwt, { SignOptions } from 'jsonwebtoken';
 
-const JWT_SECRET: string = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
+const JWT_SECRET: string = process.env.JWT_SECRET || 'change-me-in-production';
 
 export interface JwtPayload {
   userId: string;
@@ -29,8 +29,8 @@ export const generateToken = (userId: string, email: string): string => {
 export const verifyToken = (token: string): JwtPayload => {
   try {
     return jwt.verify(token, JWT_SECRET) as JwtPayload;
-  } catch (error) {
-    throw new Error('Invalid or expired token');
+  } catch (error: any) {
+    throw new Error(`JWT Verification Failed: ${error.message}`);
   }
 };
 

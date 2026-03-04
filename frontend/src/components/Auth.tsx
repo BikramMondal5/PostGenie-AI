@@ -43,9 +43,17 @@ const Auth: React.FC<AuthProps> = ({ onAuthSuccess }) => {
             }
 
             // Success
-            localStorage.setItem('token', data.token);
-            localStorage.setItem('user', JSON.stringify(data.user));
-            onAuthSuccess(data.token, data.user);
+            // Handle the { success: true, data: { token, user } } structure from successResponse
+            const token = data.data?.token || data.token;
+            const user = data.data?.user || data.user;
+
+            if (!token) {
+                throw new Error('No token received from server');
+            }
+
+            localStorage.setItem('token', token);
+            localStorage.setItem('user', JSON.stringify(user));
+            onAuthSuccess(token, user);
         } catch (err: any) {
             setError(err.message);
         } finally {
@@ -128,7 +136,7 @@ const Auth: React.FC<AuthProps> = ({ onAuthSuccess }) => {
                             </div>
                             <div className="space-y-2">
                                 <div className="flex items-center justify-between">
-                                    <Label htmlFor="password" name="password-label" className="text-gray-700 font-medium">Password</Label>
+                                    <Label htmlFor="password" title="password-label" className="text-gray-700 font-medium">Password</Label>
                                     {isLogin && (
                                         <button type="button" className="text-xs text-pink-600 hover:text-pink-700 font-medium transition-colors">
                                             Forgot password?

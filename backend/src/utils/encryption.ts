@@ -1,7 +1,7 @@
 import * as crypto from 'crypto';
 
 const ALGORITHM = 'aes-256-cbc';
-const ENCRYPTION_KEY = process.env.ENCRYPTION_KEY || 'default-key-of-32-characters-long-!!'; // Should be 32 chars
+const ENCRYPTION_KEY = process.env.ENCRYPTION_KEY || 'postgenie-secret-key-32-char-!!!'; // Exactly 32 chars
 const IV_LENGTH = 16; // For AES, this is always 16
 
 /**

@@ -1,6 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
-    Wand2,
     Sparkles,
     Trash2,
     RefreshCw,
@@ -9,20 +8,48 @@ import {
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
+import { api } from '@/lib/api';
 
 const VoiceTrainer: React.FC = () => {
     const [trainingPlatform, setTrainingPlatform] = useState<"twitter" | "linkedin" | "instagram">("linkedin");
     const [pastedPosts, setPastedPosts] = useState("");
     const [isAnalyzing, setIsAnalyzing] = useState(false);
+    const [profiles, setProfiles] = useState<any[]>([]);
+    const [loading, setLoading] = useState(true);
+
+    const fetchProfiles = async () => {
+        try {
+            const response = await api.get('/voice/profiles');
+            setProfiles(response.profiles);
+        } catch (error) {
+            console.error("Failed to fetch profiles:", error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        fetchProfiles();
+    }, []);
 
     const handleTrainVoice = async () => {
         if (!pastedPosts.trim()) return;
         setIsAnalyzing(true);
-        await new Promise(resolve => setTimeout(resolve, 2000));
-        console.log("Analyzing voice for", trainingPlatform, ":", pastedPosts);
-        setIsAnalyzing(false);
-        setPastedPosts("");
-        alert("Voice Profile Updated! PostGenie now knows your style.");
+        try {
+            const response = await api.post('/voice/train', {
+                platform: trainingPlatform,
+                content: pastedPosts
+            });
+            console.log("Analysis Result:", response.profile);
+            alert(`Voice Profile for ${trainingPlatform} Updated! PostGenie now knows your style.`);
+            setPastedPosts("");
+            fetchProfiles(); // Refresh history
+        } catch (error: any) {
+            console.error("Training Error:", error);
+            alert("Failed to analyze voice: " + error.message);
+        } finally {
+            setIsAnalyzing(false);
+        }
     };
 
     return (
@@ -115,20 +142,33 @@ const VoiceTrainer: React.FC = () => {
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-50">
-                                <tr>
-                                    <td className="px-6 py-4 font-semibold text-gray-900 capitalize">LinkedIn</td>
-                                    <td className="px-6 py-4 text-gray-500">March 04, 2024</td>
-                                    <td className="px-6 py-4 text-green-600 font-bold flex items-center gap-2">
-                                        <CheckCircle2 className="w-4 h-4" /> Ready
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td className="px-6 py-4 font-semibold text-gray-900 capitalize">Twitter</td>
-                                    <td className="px-6 py-4 text-gray-500">March 02, 2024</td>
-                                    <td className="px-6 py-4 text-green-600 font-bold flex items-center gap-2">
-                                        <CheckCircle2 className="w-4 h-4" /> Ready
-                                    </td>
-                                </tr>
+                                {loading ? (
+                                    <tr>
+                                        <td colSpan={3} className="px-6 py-8 text-center text-gray-400 italic">
+                                            Loading history...
+                                        </td>
+                                    </tr>
+                                ) : profiles.length === 0 ? (
+                                    <tr>
+                                        <td colSpan={3} className="px-6 py-8 text-center text-gray-400 italic">
+                                            No training data yet. Start by pasting some posts above!
+                                        </td>
+                                    </tr>
+                                ) : profiles.map((profile) => (
+                                    <tr key={profile.profileId}>
+                                        <td className="px-6 py-4 font-semibold text-gray-900 capitalize">{profile.platform}</td>
+                                        <td className="px-6 py-4 text-gray-500">
+                                            {new Date(profile.updatedAt).toLocaleDateString(undefined, {
+                                                month: 'long',
+                                                day: 'numeric',
+                                                year: 'numeric'
+                                            })}
+                                        </td>
+                                        <td className="px-6 py-4 text-green-600 font-bold flex items-center gap-2">
+                                            <CheckCircle2 className="w-4 h-4" /> Ready
+                                        </td>
+                                    </tr>
+                                ))}
                             </tbody>
                         </table>
                     </div>

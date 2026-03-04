@@ -183,6 +183,117 @@ export class PostGenieStack extends cdk.Stack {
     const loginResource = authResource.addResource('login');
     loginResource.addMethod('POST', new apigateway.LambdaIntegration(loginFunction));
 
+    // Voice - Train
+    const trainVoiceFunction = new lambdaNodejs.NodejsFunction(this, 'TrainVoiceFunction', {
+      runtime: lambda.Runtime.NODEJS_18_X,
+      entry: path.join(__dirname, '../../backend/src/functions/voice/train.ts'),
+      handler: 'handler',
+      role: lambdaRole,
+      environment: {
+        VOICE_PROFILES_TABLE: voiceProfilesTable.tableName,
+        JWT_SECRET: process.env.JWT_SECRET || 'change-me-in-production',
+      },
+      timeout: cdk.Duration.seconds(60), // AI analysis might take time
+      bundling: {
+        minify: true,
+        sourceMap: true,
+      },
+    });
+
+    const voiceResource = api.root.addResource('voice');
+    const trainResource = voiceResource.addResource('train');
+    trainResource.addMethod('POST', new apigateway.LambdaIntegration(trainVoiceFunction));
+
+    // Voice - List
+    const listVoiceProfilesFunction = new lambdaNodejs.NodejsFunction(this, 'ListVoiceProfilesFunction', {
+      runtime: lambda.Runtime.NODEJS_18_X,
+      entry: path.join(__dirname, '../../backend/src/functions/voice/list.ts'),
+      handler: 'handler',
+      role: lambdaRole,
+      environment: {
+        VOICE_PROFILES_TABLE: voiceProfilesTable.tableName,
+        JWT_SECRET: process.env.JWT_SECRET || 'change-me-in-production',
+      },
+      timeout: cdk.Duration.seconds(30),
+      bundling: {
+        minify: true,
+        sourceMap: true,
+      },
+    });
+
+    const profilesResource = voiceResource.addResource('profiles');
+    profilesResource.addMethod('GET', new apigateway.LambdaIntegration(listVoiceProfilesFunction));
+
+    // OAuth Functions
+    const initiateOauthFunction = new lambdaNodejs.NodejsFunction(this, 'InitiateOauthFunction', {
+      runtime: lambda.Runtime.NODEJS_18_X,
+      entry: path.join(__dirname, '../../backend/src/functions/oauth/initiate.ts'),
+      handler: 'handler',
+      role: lambdaRole,
+      environment: {
+        JWT_SECRET: process.env.JWT_SECRET || 'change-me-in-production',
+      },
+      timeout: cdk.Duration.seconds(30),
+      bundling: { minify: true, sourceMap: true },
+    });
+
+    const callbackOauthFunction = new lambdaNodejs.NodejsFunction(this, 'CallbackOauthFunction', {
+      runtime: lambda.Runtime.NODEJS_18_X,
+      entry: path.join(__dirname, '../../backend/src/functions/oauth/callback.ts'),
+      handler: 'handler',
+      role: lambdaRole,
+      environment: {
+        CONNECTIONS_TABLE: connectionsTable.tableName,
+        ENCRYPTION_KEY: process.env.ENCRYPTION_KEY || 'postgenie-secret-key-32-char-!!!',
+        FRONTEND_URL: process.env.FRONTEND_URL || 'http://localhost:3000',
+      },
+      timeout: cdk.Duration.seconds(30),
+      bundling: { minify: true, sourceMap: true },
+    });
+
+    const oauthResource = api.root.addResource('oauth');
+    const initiateResource = oauthResource.addResource('initiate');
+    initiateResource.addMethod('GET', new apigateway.LambdaIntegration(initiateOauthFunction));
+
+    const callbackResource = oauthResource.addResource('callback');
+    const platformCallbackResource = callbackResource.addResource('{platform}');
+    platformCallbackResource.addMethod('GET', new apigateway.LambdaIntegration(callbackOauthFunction));
+
+    // OAuth - List Connections
+    const listConnectionsFunction = new lambdaNodejs.NodejsFunction(this, 'ListConnectionsFunction', {
+      runtime: lambda.Runtime.NODEJS_18_X,
+      entry: path.join(__dirname, '../../backend/src/functions/oauth/listConnections.ts'),
+      handler: 'handler',
+      role: lambdaRole,
+      environment: {
+        CONNECTIONS_TABLE: connectionsTable.tableName,
+        JWT_SECRET: process.env.JWT_SECRET || 'change-me-in-production',
+        ENCRYPTION_KEY: process.env.ENCRYPTION_KEY || 'postgenie-secret-key-32-char-!!!',
+      },
+      timeout: cdk.Duration.seconds(30),
+      bundling: { minify: true, sourceMap: true },
+    });
+
+    const connectionsResource = oauthResource.addResource('connections');
+    connectionsResource.addMethod('GET', new apigateway.LambdaIntegration(listConnectionsFunction));
+
+    // OAuth - Disconnect
+    const disconnectOauthFunction = new lambdaNodejs.NodejsFunction(this, 'DisconnectOauthFunction', {
+      runtime: lambda.Runtime.NODEJS_18_X,
+      entry: path.join(__dirname, '../../backend/src/functions/oauth/disconnect.ts'),
+      handler: 'handler',
+      role: lambdaRole,
+      environment: {
+        CONNECTIONS_TABLE: connectionsTable.tableName,
+        JWT_SECRET: process.env.JWT_SECRET || 'change-me-in-production',
+      },
+      timeout: cdk.Duration.seconds(30),
+      bundling: { minify: true, sourceMap: true },
+    });
+
+    const platformConnectionsResource = connectionsResource.addResource('{platform}');
+    platformConnectionsResource.addMethod('DELETE', new apigateway.LambdaIntegration(disconnectOauthFunction));
+
     // Output values
     new cdk.CfnOutput(this, 'ApiUrl', {
       value: api.url,

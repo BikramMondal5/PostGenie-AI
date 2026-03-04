@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
     Twitter,
     Linkedin,
@@ -7,27 +7,82 @@ import {
     CheckCircle2,
     AlertCircle,
     Link2,
-    Unlink2
+    Unlink2,
+    RefreshCw
 } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
+import { api } from '@/lib/api';
 
 const Integrations: React.FC = () => {
+    const [loading, setLoading] = useState(true);
     const [platforms, setPlatforms] = useState({
-        twitter: { connected: true, active: true },
-        linkedin: { connected: true, active: true },
-        instagram: { connected: false, active: false },
-        facebook: { connected: false, active: false },
+        twitter: { connected: false, active: false, lastSynced: null },
+        linkedin: { connected: false, active: false, lastSynced: null },
+        instagram: { connected: false, active: false, lastSynced: null },
+        facebook: { connected: false, active: false, lastSynced: null },
     });
 
     const platformConfig = {
-        twitter: { name: 'X / Twitter', icon: Twitter, color: 'text-black', bgColor: 'bg-black/5' },
         linkedin: { name: 'LinkedIn', icon: Linkedin, color: 'text-blue-600', bgColor: 'bg-blue-50' },
+        twitter: { name: 'X / Twitter', icon: Twitter, color: 'text-black', bgColor: 'bg-black/5' },
         instagram: { name: 'Instagram', icon: Instagram, color: 'text-pink-600', bgColor: 'bg-pink-50' },
         facebook: { name: 'Facebook', icon: Facebook, color: 'text-blue-700', bgColor: 'bg-blue-50' },
+    };
+
+    const fetchConnections = async () => {
+        try {
+            const data = await api.get('/oauth/connections');
+            const newPlatforms = { ...platforms };
+
+            // Reset connections
+            Object.keys(newPlatforms).forEach(key => {
+                newPlatforms[key as keyof typeof platforms].connected = false;
+            });
+
+            data.connections.forEach((conn: any) => {
+                if (newPlatforms[conn.platform as keyof typeof platforms]) {
+                    newPlatforms[conn.platform as keyof typeof platforms] = {
+                        connected: true,
+                        active: true,
+                        lastSynced: conn.connectedAt
+                    };
+                }
+            });
+            setPlatforms(newPlatforms);
+        } catch (error) {
+            console.error('Failed to fetch connections:', error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        fetchConnections();
+    }, []);
+
+    const handleConnect = async (platform: string) => {
+        try {
+            const data = await api.get(`/oauth/initiate?platform=${platform}`);
+            if (data.authUrl) {
+                window.location.href = data.authUrl;
+            }
+        } catch (error: any) {
+            alert('Failed to initiate connection: ' + error.message);
+        }
+    };
+
+    const handleDisconnect = async (platform: string) => {
+        if (!window.confirm(`Are you sure you want to disconnect ${platform}?`)) return;
+        try {
+            await api.delete(`/oauth/connections/${platform}`);
+            await fetchConnections();
+        } catch (error: any) {
+            alert('Failed to disconnect: ' + error.message);
+        }
     };
 
     const handleToggle = (key: keyof typeof platforms) => {
@@ -38,8 +93,16 @@ const Integrations: React.FC = () => {
         }));
     };
 
+    if (loading) {
+        return (
+            <div className="flex items-center justify-center p-20">
+                <RefreshCw className="w-8 h-8 text-pink-500 animate-spin" />
+            </div>
+        );
+    }
+
     return (
-        <div className="max-w-3xl">
+        <div className="max-w-3xl text-gray-900">
             <div className="mb-8">
                 <h2 className="text-2xl font-bold text-gray-900">Social Integrations</h2>
                 <p className="text-gray-500 mt-1">Manage your connected social media accounts and publishing permissions.</p>
@@ -64,7 +127,7 @@ const Integrations: React.FC = () => {
                                 <div className={cn("p-3 rounded-xl", config.bgColor)}>
                                     <Icon className={cn("w-6 h-6", config.color)} />
                                 </div>
-                                <div>
+                                <div className="text-left">
                                     <div className="flex items-center gap-2">
                                         <h3 className="font-bold text-gray-900">{config.name}</h3>
                                         {state.connected ? (
@@ -78,9 +141,9 @@ const Integrations: React.FC = () => {
                                             </Badge>
                                         )}
                                     </div>
-                                    <p className="text-xs text-gray-500 mt-0.5">
+                                    <p className="text-xs text-gray-500 mt-0.5 whitespace-nowrap">
                                         {state.connected
-                                            ? 'Last synced 2 hours ago'
+                                            ? `Synced on ${new Date(state.lastSynced || '').toLocaleDateString()}`
                                             : 'Connect your account to start publishing'}
                                     </p>
                                 </div>
@@ -103,6 +166,7 @@ const Integrations: React.FC = () => {
                                 <Button
                                     variant={state.connected ? "ghost" : "outline"}
                                     size="sm"
+                                    onClick={() => state.connected ? handleDisconnect(key) : handleConnect(key)}
                                     className={cn(
                                         "font-bold h-10 px-4",
                                         state.connected
@@ -124,7 +188,7 @@ const Integrations: React.FC = () => {
 
             <div className="mt-12 p-6 rounded-2xl bg-amber-50 border border-amber-100 flex gap-4">
                 <AlertCircle className="w-6 h-6 text-amber-600 shrink-0" />
-                <div>
+                <div className="text-left">
                     <h4 className="text-sm font-bold text-amber-900">Experimental Feature</h4>
                     <p className="text-xs text-amber-800 mt-1 leading-relaxed">
                         Multi-platform publishing is currently in beta. We recommend reviewing each post before publishing to ensure platform-specific formatting.
