@@ -46,3 +46,10 @@ coverage/
 # Temporary files
 *.tmp
 .cache/
+
+# Security and Context
+*.p12
+*.pem
+*.cert
+cdk.context.json
+.aws/

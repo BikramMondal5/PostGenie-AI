@@ -1,7 +1,6 @@
 import React, { useState, useRef, useCallback, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  Settings,
   User,
   Plus,
   Twitter,
@@ -12,6 +11,7 @@ import {
   Edit,
   Download,
   Sparkles,
+  LogIn,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -432,7 +432,11 @@ const SettingsPanel: React.FC = () => {
 };
 
 // Main Component
-const PostGenieAI: React.FC = () => {
+interface PostGenieAIProps {
+  onLogout: () => void;
+}
+
+const PostGenieAI: React.FC<PostGenieAIProps> = ({ onLogout }) => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedPosts, setGeneratedPosts] = useState<
     Array<{
@@ -533,8 +537,8 @@ const PostGenieAI: React.FC = () => {
                 </div>
               </SheetContent>
             </Sheet>
-            <Button variant="ghost" size="icon">
-              <Settings className="w-5 h-5 text-gray-700" />
+            <Button variant="ghost" size="icon" onClick={onLogout}>
+              <LogIn className="w-5 h-5 text-gray-700 hover:text-pink-600 rotate-180" />
             </Button>
             <Avatar>
               <AvatarImage src="" />

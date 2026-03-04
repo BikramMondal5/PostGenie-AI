@@ -5,6 +5,8 @@ import * as lambda from 'aws-cdk-lib/aws-lambda';
 import * as apigateway from 'aws-cdk-lib/aws-apigateway';
 import * as secretsmanager from 'aws-cdk-lib/aws-secretsmanager';
 import * as iam from 'aws-cdk-lib/aws-iam';
+import * as lambdaNodejs from 'aws-cdk-lib/aws-lambda-nodejs';
+import * as path from 'path';
 
 export class PostGenieStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
@@ -139,34 +141,42 @@ export class PostGenieStack extends cdk.Stack {
 
     // Lambda Functions
     // Auth - Register
-    const registerFunction = new lambda.Function(this, 'RegisterFunction', {
+    const registerFunction = new lambdaNodejs.NodejsFunction(this, 'RegisterFunction', {
       runtime: lambda.Runtime.NODEJS_18_X,
-      handler: 'register.handler',
-      code: lambda.Code.fromAsset('../backend/dist/functions/auth'),
+      entry: path.join(__dirname, '../../backend/src/functions/auth/register.ts'),
+      handler: 'handler',
       role: lambdaRole,
       environment: {
         USERS_TABLE: usersTable.tableName,
         JWT_SECRET: process.env.JWT_SECRET || 'change-me-in-production',
       },
       timeout: cdk.Duration.seconds(30),
+      bundling: {
+        minify: true,
+        sourceMap: true,
+      },
     });
 
     // Auth - Login
-    const loginFunction = new lambda.Function(this, 'LoginFunction', {
+    const loginFunction = new lambdaNodejs.NodejsFunction(this, 'LoginFunction', {
       runtime: lambda.Runtime.NODEJS_18_X,
-      handler: 'login.handler',
-      code: lambda.Code.fromAsset('../backend/dist/functions/auth'),
+      entry: path.join(__dirname, '../../backend/src/functions/auth/login.ts'),
+      handler: 'handler',
       role: lambdaRole,
       environment: {
         USERS_TABLE: usersTable.tableName,
         JWT_SECRET: process.env.JWT_SECRET || 'change-me-in-production',
       },
       timeout: cdk.Duration.seconds(30),
+      bundling: {
+        minify: true,
+        sourceMap: true,
+      },
     });
 
     // API Gateway Routes
     const authResource = api.root.addResource('auth');
-    
+
     const registerResource = authResource.addResource('register');
     registerResource.addMethod('POST', new apigateway.LambdaIntegration(registerFunction));
 

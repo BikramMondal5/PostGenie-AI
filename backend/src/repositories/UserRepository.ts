@@ -1,7 +1,7 @@
 import { PutCommand, GetCommand, UpdateCommand, QueryCommand } from '@aws-sdk/lib-dynamodb';
 import { dynamoDb, TABLES } from '../config/dynamodb';
 import { User } from '../types';
-import * as bcrypt from 'bcrypt';
+import * as bcrypt from 'bcryptjs';
 import { v4 as uuidv4 } from 'uuid';
 
 const SALT_ROUNDS = 12;
