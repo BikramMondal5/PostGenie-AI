@@ -1,0 +1,28 @@
+{
+  "name": "postgenie-ai",
+  "version": "1.0.0",
+  "description": "AI-powered content intelligence platform for social media",
+  "private": true,
+  "workspaces": [
+    "frontend",
+    "infrastructure"
+  ],
+  "scripts": {
+    "frontend": "npm run dev --workspace=frontend",
+    "infra": "npm run cdk --workspace=infrastructure",
+    "test": "npm run test --workspaces",
+    "build": "npm run build --workspaces",
+    "build:backend": "npm run build --workspace=backend",
+    "build:infra": "npm run build --workspace=infrastructure",
+    "deploy": "npm run build:backend && npm run build:infra && cd infrastructure && cdk deploy",
+    "setup": "npm install && npm run build:backend"
+  },
+  "keywords": [
+    "ai",
+    "social-media",
+    "content-generation",
+    "aws-bedrock"
+  ],
+  "author": "",
+  "license": "MIT"
+}
