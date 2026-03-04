@@ -42,14 +42,25 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
             client_secret: platformSecrets.clientSecret,
         };
 
+        let axiosOptions: any = {
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+        };
+
         switch (platform) {
             case 'linkedin':
                 tokenEndpoint = 'https://www.linkedin.com/oauth/v2/accessToken';
                 break;
             case 'twitter':
                 tokenEndpoint = 'https://api.twitter.com/2/oauth2/token';
-                // Twitter requires Basic Auth for client credentials in some cases or just payload
-                payload.code_verifier = 'challenge'; // Must match code_challenge from initiate
+                payload.code_verifier = 'challenge';
+                // Twitter requires Basic Auth credentials for OAuth 2.0 PKCE flow
+                const basicAuth = Buffer.from(`${platformSecrets.clientId}:${platformSecrets.clientSecret}`).toString('base64');
+                axiosOptions.headers['Authorization'] = `Basic ${basicAuth}`;
+                // Remove client secret from body, as it must go in header
+                delete payload.client_secret;
+                delete payload.client_id; // Usually also deleted when using Basic auth, but Twitter sometimes accepts it. Let's send in Basic.
                 break;
             case 'instagram':
                 tokenEndpoint = 'https://api.instagram.com/oauth/access_token';
@@ -59,11 +70,7 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
         }
 
         // 3. Exchange code for token
-        const response = await axios.post(tokenEndpoint, new URLSearchParams(payload).toString(), {
-            headers: {
-                'Content-Type': 'application/x-www-form-urlencoded',
-            },
-        });
+        const response = await axios.post(tokenEndpoint, new URLSearchParams(payload).toString(), axiosOptions);
 
         const { access_token, refresh_token, expires_in } = response.data;
 
