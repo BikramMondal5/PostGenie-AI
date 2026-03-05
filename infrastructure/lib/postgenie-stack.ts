@@ -224,6 +224,26 @@ export class PostGenieStack extends cdk.Stack {
     const profilesResource = voiceResource.addResource('profiles');
     profilesResource.addMethod('GET', new apigateway.LambdaIntegration(listVoiceProfilesFunction));
 
+    // Content Generation
+    const generateContentFunction = new lambdaNodejs.NodejsFunction(this, 'GenerateContentFunction', {
+      runtime: lambda.Runtime.NODEJS_18_X,
+      entry: path.join(__dirname, '../../backend/src/functions/content/generate.ts'),
+      handler: 'handler',
+      role: lambdaRole,
+      environment: {
+        JWT_SECRET: process.env.JWT_SECRET || 'change-me-in-production',
+      },
+      timeout: cdk.Duration.seconds(60), // AI generation takes time
+      bundling: {
+        minify: true,
+        sourceMap: true,
+      },
+    });
+
+    const contentResource = api.root.addResource('content');
+    const generateResource = contentResource.addResource('generate');
+    generateResource.addMethod('POST', new apigateway.LambdaIntegration(generateContentFunction));
+
     // OAuth Functions
     const initiateOauthFunction = new lambdaNodejs.NodejsFunction(this, 'InitiateOauthFunction', {
       runtime: lambda.Runtime.NODEJS_18_X,
@@ -293,6 +313,24 @@ export class PostGenieStack extends cdk.Stack {
 
     const platformConnectionsResource = connectionsResource.addResource('{platform}');
     platformConnectionsResource.addMethod('DELETE', new apigateway.LambdaIntegration(disconnectOauthFunction));
+
+    // Publishing
+    const publishPostFunction = new lambdaNodejs.NodejsFunction(this, 'PublishPostFunction', {
+      runtime: lambda.Runtime.NODEJS_18_X,
+      entry: path.join(__dirname, '../../backend/src/functions/publish/handler.ts'),
+      handler: 'handler',
+      role: lambdaRole,
+      environment: {
+        CONNECTIONS_TABLE: connectionsTable.tableName,
+        JWT_SECRET: process.env.JWT_SECRET || 'change-me-in-production',
+        ENCRYPTION_KEY: process.env.ENCRYPTION_KEY || 'postgenie-secret-key-32-char-!!!',
+      },
+      timeout: cdk.Duration.seconds(30),
+      bundling: { minify: true, sourceMap: true },
+    });
+
+    const publishResource = api.root.addResource('publish');
+    publishResource.addMethod('POST', new apigateway.LambdaIntegration(publishPostFunction));
 
     // Output values
     new cdk.CfnOutput(this, 'ApiUrl', {

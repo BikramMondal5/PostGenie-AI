@@ -13,11 +13,16 @@ import {
   Download,
   Sparkles,
   LogIn,
+  Check,
+  Clock,
 } from "lucide-react";
+import ReactQuill from "react-quill";
+import "react-quill/dist/quill.snow.css";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { api } from "@/lib/api";
 
 const cn = (...classes: (string | undefined | null | false)[]) =>
   classes.filter(Boolean).join(" ");
@@ -103,8 +108,8 @@ interface PlatformCardProps {
   onPositionChange: (pos: { x: number; y: number }) => void;
   onRegenerate: () => void;
   onCopy: () => void;
-  onEdit: () => void;
   onExport: () => void;
+  onSchedule?: (content: string, date: string, time: string) => void;
 }
 
 const PlatformCard: React.FC<PlatformCardProps> = ({
@@ -114,12 +119,49 @@ const PlatformCard: React.FC<PlatformCardProps> = ({
   onPositionChange,
   onRegenerate,
   onCopy,
-  onEdit,
   onExport,
+  onSchedule = (_c, d, t) => console.log(`Scheduled content to ${platform} for ${d} at ${t}`),
 }) => {
   const [isDragging, setIsDragging] = useState(false);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
   const cardRef = useRef<HTMLDivElement>(null);
+  const [isEditing, setIsEditing] = useState(false);
+  const [localContent, setLocalContent] = useState("");
+  const [showSchedule, setShowSchedule] = useState(false);
+  const [scheduleDate, setScheduleDate] = useState("");
+  const [scheduleTime, setScheduleTime] = useState("");
+
+  useEffect(() => {
+    // Basic formatting of newlines and bold from AI output
+    const formatted = content
+      .replace(/\n/g, '<br/>')
+      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+    setLocalContent(formatted);
+  }, [content]);
+
+  const handleCopy = () => {
+    const textContent = localContent
+      .replace(/<br\s*\/?>/gi, '\n')
+      .replace(/<[^>]+>/g, '')
+      .replace(/&nbsp;/g, ' ');
+    navigator.clipboard.writeText(textContent);
+    onCopy();
+  };
+
+  const handleExport = () => {
+    const textContent = localContent
+      .replace(/<br\s*\/?>/gi, '\n')
+      .replace(/<[^>]+>/g, '')
+      .replace(/&nbsp;/g, ' ');
+    const blob = new Blob([textContent], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${platform}-post.txt`;
+    a.click();
+    URL.revokeObjectURL(url);
+    onExport();
+  };
 
   const platformConfig = {
     twitter: {
@@ -201,67 +243,162 @@ const PlatformCard: React.FC<PlatformCardProps> = ({
       }}
     >
       <Card
-        className="w-80 shadow-lg hover:shadow-xl transition-shadow duration-300 bg-white border-gray-200"
+        className={cn(
+          "shadow-lg transition-all duration-300 bg-white border-gray-200",
+          isEditing ? "w-[500px]" : "w-80",
+          !isEditing && "hover:shadow-xl"
+        )}
         onMouseDown={handleMouseDown}
       >
-        <CardHeader className="pb-3">
-          <div className="flex items-center gap-2">
-            <div className={cn("p-2 rounded-lg", config.bgColor)}>
-              <Icon className={cn("w-5 h-5", config.color)} />
+        <CardHeader className="pb-3 relative">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div className={cn("p-2 rounded-lg", config.bgColor)}>
+                <Icon className={cn("w-5 h-5", config.color)} />
+              </div>
+              <CardTitle className="text-base font-semibold">
+                {config.name}
+              </CardTitle>
             </div>
-            <CardTitle className="text-base font-semibold">
-              {config.name}
-            </CardTitle>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="text-gray-500 hover:text-pink-600 rounded-full h-8 w-8"
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowSchedule(!showSchedule);
+              }}
+            >
+              <Clock className="w-4 h-4" />
+            </Button>
           </div>
+
+          {/* Schedule Popover */}
+          <AnimatePresence>
+            {showSchedule && (
+              <motion.div
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                className="absolute top-14 right-4 w-60 bg-white border border-gray-200 shadow-xl rounded-lg p-3 z-50 flex flex-col gap-3"
+                onMouseDown={(e) => e.stopPropagation()}
+              >
+                <h4 className="text-sm font-semibold text-gray-900 border-b pb-2">Schedule Post</h4>
+                <div className="flex flex-col gap-1">
+                  <label className="text-xs text-gray-600">Date</label>
+                  <input
+                    type="date"
+                    className="border rounded text-sm px-2 py-1 w-full"
+                    value={scheduleDate}
+                    onChange={(e) => setScheduleDate(e.target.value)}
+                  />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <label className="text-xs text-gray-600">Time</label>
+                  <input
+                    type="time"
+                    className="border rounded text-sm px-2 py-1 w-full"
+                    value={scheduleTime}
+                    onChange={(e) => setScheduleTime(e.target.value)}
+                  />
+                </div>
+                <Button
+                  size="sm"
+                  className="w-full bg-pink-600 hover:bg-pink-700 text-white mt-1"
+                  disabled={!scheduleDate || !scheduleTime}
+                  onClick={() => {
+                    const textContent = localContent
+                      .replace(/<br\s*\/?>/gi, '\n')
+                      .replace(/<[^>]+>/g, '')
+                      .replace(/&nbsp;/g, ' ');
+                    onSchedule(textContent, scheduleDate, scheduleTime);
+                    setShowSchedule(false);
+                  }}
+                >
+                  <Check className="w-3 h-3 mr-2" />
+                  Confirm Schedule
+                </Button>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </CardHeader>
         <CardContent className="space-y-3">
-          <div className="max-h-40 overflow-y-auto text-sm text-gray-700 leading-relaxed">
-            {content}
-          </div>
-          <div className="flex gap-2 pt-2 border-t">
-            <Button
-              size="sm"
-              variant="outline"
-              className="flex-1"
-              onClick={(e) => {
-                e.stopPropagation();
-                onCopy();
-              }}
-            >
-              <Copy className="w-3 h-3 mr-1" />
-              Copy
-            </Button>
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={(e) => {
-                e.stopPropagation();
-                onRegenerate();
-              }}
-            >
-              <RefreshCw className="w-3 h-3 mr-1" />
-              Regenerate
-            </Button>
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={(e) => {
-                e.stopPropagation();
-                onEdit();
-              }}
-            >
-              <Edit className="w-3 h-3" />
-            </Button>
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={(e) => {
-                e.stopPropagation();
-                onExport();
-              }}
-            >
-              <Download className="w-3 h-3" />
-            </Button>
+          {isEditing ? (
+            <div className="bg-white rounded" onMouseDown={(e) => e.stopPropagation()}>
+              <ReactQuill
+                theme="snow"
+                value={localContent}
+                onChange={setLocalContent}
+                style={{ minHeight: '150px' }}
+              />
+            </div>
+          ) : (
+            <div
+              className="max-h-60 overflow-y-auto text-sm text-gray-700 leading-relaxed quill-content"
+              dangerouslySetInnerHTML={{ __html: localContent }}
+            />
+          )}
+
+          <div className="flex gap-2 pt-2 border-t mt-2">
+            {!isEditing ? (
+              <>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="flex-1"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleCopy();
+                  }}
+                >
+                  <Copy className="w-3 h-3 mr-1" />
+                  Copy
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onRegenerate();
+                  }}
+                >
+                  <RefreshCw className="w-3 h-3 mr-1" />
+                  Regenerate
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setIsEditing(true);
+                  }}
+                >
+                  <Edit className="w-3 h-3" />
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleExport();
+                  }}
+                >
+                  <Download className="w-3 h-3" />
+                </Button>
+              </>
+            ) : (
+              <Button
+                size="sm"
+                className="flex-1 bg-pink-600 hover:bg-pink-700 text-white"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setIsEditing(false);
+                }}
+              >
+                <Check className="w-4 h-4 mr-2" />
+                Done Editing
+              </Button>
+            )}
           </div>
         </CardContent>
       </Card>
@@ -273,14 +410,12 @@ const PlatformCard: React.FC<PlatformCardProps> = ({
 interface InputNodeProps {
   position: { x: number; y: number };
   onGenerate: (prompt: string) => void;
-  onQueue: (prompt: string) => void;
   isGenerating: boolean;
 }
 
 const InputNode: React.FC<InputNodeProps> = ({
   position,
   onGenerate,
-  onQueue,
   isGenerating,
 }) => {
   const [prompt, setPrompt] = useState("");
@@ -316,7 +451,7 @@ const InputNode: React.FC<InputNodeProps> = ({
           />
           <div className="flex gap-3">
             <Button
-              className="flex-1 bg-pink-600 hover:bg-pink-700 text-white"
+              className="w-full bg-pink-600 hover:bg-pink-700 text-white"
               onClick={() => onGenerate(prompt)}
               disabled={!prompt.trim() || isGenerating}
             >
@@ -331,13 +466,6 @@ const InputNode: React.FC<InputNodeProps> = ({
                   Generate Posts
                 </>
               )}
-            </Button>
-            <Button
-              variant="outline"
-              onClick={() => onQueue(prompt)}
-              disabled={!prompt.trim() || isGenerating}
-            >
-              Queue for Later
             </Button>
           </div>
         </CardContent>
@@ -367,30 +495,44 @@ const PostGenieAI: React.FC<PostGenieAIProps> = ({ onLogout }) => {
 
   const handleGenerate = async (prompt: string) => {
     setIsGenerating(true);
-    // Simulate AI generation
-    await new Promise((resolve) => setTimeout(resolve, 2000));
 
-    const platforms: Array<"twitter" | "linkedin" | "instagram"> = [
-      "twitter",
-      "linkedin",
-      "instagram",
-    ];
+    try {
+      // Call the real backend endpoint to generate posts via Amazon Bedrock
+      const response = await api.post("/content/generate", { prompt });
 
-    const newPosts = platforms.map((platform, index) => ({
-      platform,
-      content: `${prompt} \n\nOptimized for ${platform}. This is AI-generated content tailored for maximum engagement on this platform. #AI #ContentGeneration #PostGenieAI`,
-      position: {
-        x: inputNodePosition.x + 600,
-        y: inputNodePosition.y + index * 280 - 200,
-      },
-    }));
+      if (response && response.data && response.data.posts) {
+        // Map the backend structure to our frontend format
+        const newPosts = response.data.posts.map((post: any, index: number) => ({
+          platform: post.platform,
+          content: post.content,
+          position: {
+            x: inputNodePosition.x + 600,
+            y: inputNodePosition.y + index * 280 - 200,
+          },
+        }));
 
-    setGeneratedPosts(newPosts);
-    setIsGenerating(false);
+        setGeneratedPosts(newPosts);
+      }
+    } catch (error) {
+      console.error("Failed to generate posts:", error);
+      // Fallback on error or show toast notification (handled gracefully for now)
+      alert("Failed to generate posts. Please check your connection or backend logic.");
+    } finally {
+      setIsGenerating(false);
+    }
   };
 
-  const handleQueue = (prompt: string) => {
-    console.log("Queued for later:", prompt);
+
+  const handlePostPublish = async (platform: string, content: string, date: string, time: string) => {
+    try {
+      const response = await api.post("/publish", { platform, content, scheduledAt: `${date}T${time}` });
+      if (response && response.data && response.data.success) {
+        alert(`Successfully published to ${platform}!`);
+      }
+    } catch (error: any) {
+      console.error("Publishing failed:", error);
+      alert(error.message || `Failed to publish to ${platform}. Please ensure your account is connected in Settings.`);
+    }
   };
 
   const updateCardPosition = (
@@ -471,7 +613,6 @@ const PostGenieAI: React.FC<PostGenieAIProps> = ({ onLogout }) => {
         <InputNode
           position={inputNodePosition}
           onGenerate={handleGenerate}
-          onQueue={handleQueue}
           isGenerating={isGenerating}
         />
 
@@ -484,13 +625,15 @@ const PostGenieAI: React.FC<PostGenieAIProps> = ({ onLogout }) => {
               content={post.content}
               position={post.position}
               onPositionChange={(pos) => updateCardPosition(index, pos)}
-              onRegenerate={() => console.log("Regenerate", post.platform)}
+              onRegenerate={() => {
+                console.log("Regenerate", post.platform);
+                handleGenerate(post.content); // basic regeneration
+              }}
               onCopy={() => {
-                navigator.clipboard.writeText(post.content);
                 console.log("Copied to clipboard");
               }}
-              onEdit={() => console.log("Edit", post.platform)}
-              onExport={() => console.log("Export", post.platform)}
+              onExport={() => console.log("Exported", post.platform)}
+              onSchedule={(content, date, time) => handlePostPublish(post.platform, content, date, time)}
             />
           ))}
         </AnimatePresence>
