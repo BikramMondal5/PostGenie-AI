@@ -232,6 +232,7 @@ export class PostGenieStack extends cdk.Stack {
       role: lambdaRole,
       environment: {
         JWT_SECRET: process.env.JWT_SECRET || 'change-me-in-production',
+        GROQ_API_KEY: process.env.GROQ_API_KEY || '',
       },
       timeout: cdk.Duration.seconds(60), // AI generation takes time
       bundling: {
