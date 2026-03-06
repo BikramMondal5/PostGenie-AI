@@ -700,7 +700,7 @@ const InputNode: React.FC<InputNodeProps> = ({
                     placeholder="e.g., Product Launch, Event Announcement, Achievement"
                     value={topic}
                     onChange={(e) => setTopic(e.target.value)}
-                    className="text-gray-900 placeholder:text-gray-400"
+                    className="text-gray-900 placeholder:text-gray-400 border-pink-300 focus:border-pink-500 focus:ring-pink-200"
                     disabled={isGenerating}
                     required
                   />
@@ -714,7 +714,7 @@ const InputNode: React.FC<InputNodeProps> = ({
                     placeholder="Provide details about your topic. The more context you give, the better the AI-generated posts will be."
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
-                    className="min-h-[150px] resize-none text-gray-900 placeholder:text-gray-400 text-base"
+                    className="min-h-[150px] resize-none text-gray-900 placeholder:text-gray-400 text-base border-pink-300 focus:border-pink-500 focus:ring-pink-200"
                     disabled={isGenerating}
                   />
                 </div>
