@@ -103,6 +103,7 @@ interface PlatformCardProps {
   onCopy: () => void;
   onExport: () => void;
   onSchedule?: (content: string, date: string, time: string) => void;
+  onPost?: (content: string, imageUrl?: string) => void;
   imageUrl?: string;
 }
 
@@ -115,6 +116,7 @@ const PlatformCard: React.FC<PlatformCardProps> = ({
   onCopy,
   onExport,
   onSchedule = (_c, d, t) => console.log(`Scheduled content to ${platform} for ${d} at ${t}`),
+  onPost = (_c, _i) => console.log(`Posted to ${platform}`),
   imageUrl,
 }) => {
   const [isDragging, setIsDragging] = useState(false);
@@ -125,6 +127,7 @@ const PlatformCard: React.FC<PlatformCardProps> = ({
   const [showSchedule, setShowSchedule] = useState(false);
   const [scheduleDate, setScheduleDate] = useState("");
   const [scheduleTime, setScheduleTime] = useState("");
+  const [isCopied, setIsCopied] = useState(false);
 
   useEffect(() => {
     // Basic formatting of newlines and bold from AI output
@@ -134,12 +137,29 @@ const PlatformCard: React.FC<PlatformCardProps> = ({
     setLocalContent(formatted);
   }, [content]);
 
-  const handleCopy = () => {
+  const handleCopy = async (e: React.MouseEvent<HTMLButtonElement>) => {
     const textContent = localContent
       .replace(/<br\s*\/?>/gi, '\n')
       .replace(/<[^>]+>/g, '')
       .replace(/&nbsp;/g, ' ');
     navigator.clipboard.writeText(textContent);
+    
+    // Trigger confetti from button position
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = (rect.left + rect.width / 2) / window.innerWidth;
+    const y = (rect.top + rect.height / 2) / window.innerHeight;
+
+    const { default: confetti } = await import('canvas-confetti');
+    confetti({
+      particleCount: 50,
+      spread: 60,
+      origin: { x, y },
+      colors: ['#ec4899', '#f472b6', '#fbcfe8', '#fce7f3'],
+    });
+
+    setIsCopied(true);
+    setTimeout(() => setIsCopied(false), 2000);
+    
     onCopy();
   };
 
@@ -161,18 +181,21 @@ const PlatformCard: React.FC<PlatformCardProps> = ({
   const platformConfig = {
     twitter: {
       name: "X Post",
+      postName: "X",
       icon: Twitter,
       color: "text-black",
       bgColor: "bg-white",
     },
     linkedin: {
       name: "LinkedIn Post",
+      postName: "LinkedIn",
       icon: Linkedin,
       color: "text-blue-600",
       bgColor: "bg-blue-50",
     },
     instagram: {
       name: "Instagram Caption",
+      postName: "Instagram",
       icon: Instagram,
       color: "text-pink-600",
       bgColor: "bg-pink-50",
@@ -318,17 +341,6 @@ const PlatformCard: React.FC<PlatformCardProps> = ({
           </AnimatePresence>
         </CardHeader>
         <CardContent className="space-y-3">
-          {/* Image Preview if exists */}
-          {imageUrl && (
-            <div className="mb-3">
-              <img
-                src={imageUrl}
-                alt={`${platform} post image`}
-                className="w-full rounded-lg border border-gray-200"
-              />
-            </div>
-          )}
-
           {isEditing ? (
             <div className="bg-white rounded" onMouseDown={(e) => e.stopPropagation()}>
               <ReactQuill
@@ -345,20 +357,40 @@ const PlatformCard: React.FC<PlatformCardProps> = ({
             />
           )}
 
+          {/* Image Preview after text content */}
+          {imageUrl && (
+            <div className="mt-3">
+              <img
+                src={imageUrl}
+                alt={`${platform} post image`}
+                className="w-full rounded-lg border border-gray-200"
+              />
+            </div>
+          )}
+
           <div className="flex gap-2 pt-2 border-t mt-2">
             {!isEditing ? (
               <>
                 <Button
                   size="sm"
                   variant="outline"
-                  className="flex-1"
+                  className={isCopied ? "flex-1 bg-green-50 border-green-500 text-green-600" : "flex-1"}
                   onClick={(e) => {
                     e.stopPropagation();
-                    handleCopy();
+                    handleCopy(e);
                   }}
                 >
-                  <Copy className="w-3 h-3 mr-1" />
-                  Copy
+                  {isCopied ? (
+                    <>
+                      <Check className="w-3 h-3 mr-1 text-green-600" />
+                      Copied!
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="w-3 h-3 mr-1" />
+                      Copy
+                    </>
+                  )}
                 </Button>
                 <Button
                   size="sm"
@@ -406,6 +438,24 @@ const PlatformCard: React.FC<PlatformCardProps> = ({
               </Button>
             )}
           </div>
+
+          {/* Post Button */}
+          {!isEditing && (
+            <Button
+              className="w-full bg-pink-600 hover:bg-pink-700 text-white mt-2"
+              onClick={(e) => {
+                e.stopPropagation();
+                const textContent = localContent
+                  .replace(/<br\s*\/?>/gi, '\n')
+                  .replace(/<[^>]+>/g, '')
+                  .replace(/&nbsp;/g, ' ');
+                onPost(textContent, imageUrl);
+              }}
+            >
+              <Icon className="w-4 h-4 mr-2" />
+              Post to {config.postName}
+            </Button>
+          )}
         </CardContent>
       </Card>
     </motion.div>
@@ -906,6 +956,7 @@ interface PostGenieAIProps {
 const PostGenieAI: React.FC<PostGenieAIProps> = ({ onLogout }) => {
   const navigate = useNavigate();
   const [isGenerating, setIsGenerating] = useState(false);
+  const [originalPrompt, setOriginalPrompt] = useState("");
   const [generatedPosts, setGeneratedPosts] = useState<
     Array<{
       platform: "twitter" | "linkedin" | "instagram";
@@ -922,6 +973,7 @@ const PostGenieAI: React.FC<PostGenieAIProps> = ({ onLogout }) => {
 
   const handleGenerate = async (prompt: string, images: { [platform: string]: string }) => {
     setIsGenerating(true);
+    setOriginalPrompt(prompt); // Store the original prompt for regeneration
 
     try {
       // Call the real backend endpoint to generate posts via Amazon Bedrock
@@ -972,6 +1024,64 @@ const PostGenieAI: React.FC<PostGenieAIProps> = ({ onLogout }) => {
     } catch (error: any) {
       console.error("Publishing failed:", error);
       alert(error.message || `Failed to publish to ${platform}. Please ensure your account is connected in Settings.`);
+    }
+  };
+
+  const handlePostNow = async (platform: string, content: string, imageUrl?: string) => {
+    try {
+      const response = await api.post("/publish", { 
+        platform, 
+        content, 
+        imageUrl,
+        scheduledAt: new Date().toISOString() 
+      });
+      if (response && response.data && response.data.success) {
+        alert(`Successfully posted to ${platform}!`);
+      }
+    } catch (error: any) {
+      console.error("Posting failed:", error);
+      alert(error.message || `Failed to post to ${platform}. Please ensure your account is connected in Settings.`);
+    }
+  };
+
+  const handleRegeneratePlatform = async (platform: string, originalPrompt: string, index: number, imageUrl?: string) => {
+    if (!originalPrompt) {
+      alert("Cannot regenerate: original prompt not found. Please generate posts first.");
+      return;
+    }
+
+    // Set loading state for this specific card
+    setGeneratedPosts((prev) =>
+      prev.map((post, i) =>
+        i === index
+          ? { ...post, content: "Regenerating..." }
+          : post
+      )
+    );
+
+    try {
+      // Call backend to regenerate for specific platform
+      const response = await api.post("/content/generate", { 
+        prompt: originalPrompt,
+        platforms: [platform]
+      });
+
+      if (response && response.data && response.data.posts && response.data.posts.length > 0) {
+        // Update only the specific post
+        setGeneratedPosts((prev) =>
+          prev.map((post, i) =>
+            i === index
+              ? { ...post, content: response.data.posts[0].content }
+              : post
+          )
+        );
+      } else {
+        // Restore original content if regeneration fails
+        alert("Failed to regenerate post. No content returned.");
+      }
+    } catch (error) {
+      console.error("Failed to regenerate post:", error);
+      alert("Failed to regenerate post. Please try again.");
     }
   };
 
@@ -1076,14 +1186,14 @@ const PostGenieAI: React.FC<PostGenieAIProps> = ({ onLogout }) => {
               position={post.position}
               onPositionChange={(pos) => updateCardPosition(index, pos)}
               onRegenerate={() => {
-                console.log("Regenerate", post.platform);
-                handleGenerate(post.content, {}); // basic regeneration
+                handleRegeneratePlatform(post.platform, originalPrompt, index, post.imageUrl);
               }}
               onCopy={() => {
                 console.log("Copied to clipboard");
               }}
               onExport={() => console.log("Exported", post.platform)}
               onSchedule={(content, date, time) => handlePostPublish(post.platform, content, date, time)}
+              onPost={(content, imageUrl) => handlePostNow(post.platform, content, imageUrl)}
               imageUrl={post.imageUrl}
             />
           ))}

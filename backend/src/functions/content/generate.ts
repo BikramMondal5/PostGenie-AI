@@ -27,9 +27,11 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
     }
 
     let prompt = '';
+    let platforms: string[] | undefined;
     try {
         const body = JSON.parse(event.body);
         prompt = body.prompt;
+        platforms = body.platforms; // Optional: specific platforms to regenerate
     } catch (e) {
         return errorResponse(400, 'Invalid JSON body');
     }
@@ -40,9 +42,10 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
 
     try {
         // 3. Generate content for platforms via Bedrock
-        const generateForPlatform = async (platformName: string, guidelines: string, modelId: string) => {
+        const generateForPlatform = async (platformName: string, guidelines: string, modelId: string, isRegeneration: boolean = false) => {
             const systemPrompt = `You are an expert social media manager. You create highly engaging, viral, and authentic posts for ${platformName}. ${guidelines}`;
-            const userPrompt = `Write a post based on the following input:\n\n${prompt}\n\nDo not include any commentary or explanations. Just output the final post directly.`;
+            const regenerationNote = isRegeneration ? '\n\nIMPORTANT: Create a completely NEW and DIFFERENT version of this post while maintaining the same tone and style. Do not repeat the same content.' : '';
+            const userPrompt = `Write a post based on the following input:\n\n${prompt}${regenerationNote}\n\nDo not include any commentary or explanations. Just output the final post directly.`;
 
             const payload = {
                 system: [{ text: systemPrompt }],
@@ -54,7 +57,7 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
                 ],
                 inferenceConfig: {
                     maxTokens: 1000,
-                    temperature: 0.7,
+                    temperature: isRegeneration ? 0.9 : 0.7,
                 }
             };
 
@@ -68,28 +71,42 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
             try {
                 const response = await bedrock.send(command);
                 const responseBody = JSON.parse(new TextDecoder().decode(response.body));
-                return responseBody.output.message.content[0].text.trim();
+                const generatedContent = responseBody.output.message.content[0].text.trim();
+                console.log(`[Bedrock ${platformName}] Success:`, generatedContent.substring(0, 100));
+                return generatedContent;
             } catch (err: any) {
-                console.warn(`[Bedrock ${platformName}] Failed, using Groq fallback...`);
+                console.warn(`[Bedrock ${platformName}] Failed:`, err.message);
+                console.log(`[Bedrock ${platformName}] Attempting Groq fallback...`);
                 try {
-                    return await generateWithGroq(platformName, guidelines, prompt);
+                    return await generateWithGroq(platformName, guidelines, prompt, isRegeneration);
                 } catch (groqErr: any) {
                     console.error(`[Groq ${platformName}] Also failed:`, groqErr.message);
-                    return `🚀 ${prompt}\n\nHere's an amazing post optimized for ${platformName}! #ContentCreator #PostGenieAI #AI`;
+                    throw new Error(`Both Bedrock and Groq failed for ${platformName}`);
                 }
             }
         };
 
         // Run sequentially to avoid ThrottlingException (HTTP 429) on Bedrock
-        const linkedinPost = await generateForPlatform('LinkedIn', 'Keep it professional but conversational. Use engaging hooks, storytelling if applicable, and format with line breaks for readability. Use 3-5 relevant hashtags.', 'us.amazon.nova-lite-v1:0');
-        const twitterPost = await generateForPlatform('Twitter/X', 'Keep it concise, punchy, and under 280 characters. Use short sentences, perhaps a thought-provoking question, and 1-2 hashtags.', 'us.amazon.nova-micro-v1:0');
-        const instagramPost = await generateForPlatform('Instagram', 'Keep it visually descriptive and lifestyle-focused. Use a catchy opening and write an engaging caption. End with a call to action and plenty of relevant hashtags.', 'us.amazon.nova-pro-v1:0');
+        // If platforms array is provided, only generate for those platforms
+        const shouldGenerateLinkedIn = !platforms || platforms.includes('linkedin');
+        const shouldGenerateTwitter = !platforms || platforms.includes('twitter');
+        const shouldGenerateInstagram = !platforms || platforms.includes('instagram');
+        const isRegeneration = platforms && platforms.length > 0;
 
-        const newPosts = [
-            { platform: "twitter", content: twitterPost },
-            { platform: "linkedin", content: linkedinPost },
-            { platform: "instagram", content: instagramPost }
-        ];
+        const linkedinPost = shouldGenerateLinkedIn 
+            ? await generateForPlatform('LinkedIn', 'Keep it professional but conversational. Use engaging hooks, storytelling if applicable, and format with line breaks for readability. Use 3-5 relevant hashtags.', 'us.amazon.nova-lite-v1:0', isRegeneration)
+            : null;
+        const twitterPost = shouldGenerateTwitter 
+            ? await generateForPlatform('Twitter/X', 'Keep it concise, punchy, and under 280 characters. Use short sentences, perhaps a thought-provoking question, and 1-2 hashtags.', 'us.amazon.nova-micro-v1:0', isRegeneration)
+            : null;
+        const instagramPost = shouldGenerateInstagram 
+            ? await generateForPlatform('Instagram', 'Keep it visually descriptive and lifestyle-focused. Use a catchy opening and write an engaging caption. End with a call to action and plenty of relevant hashtags.', 'us.amazon.nova-pro-v1:0', isRegeneration)
+            : null;
+
+        const newPosts = [];
+        if (twitterPost) newPosts.push({ platform: "twitter", content: twitterPost });
+        if (linkedinPost) newPosts.push({ platform: "linkedin", content: linkedinPost });
+        if (instagramPost) newPosts.push({ platform: "instagram", content: instagramPost });
 
         return successResponse({ posts: newPosts });
     } catch (error: any) {
@@ -98,13 +115,17 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
     }
 };
 
-async function generateWithGroq(platformName: string, guidelines: string, userPrompt: string) {
+async function generateWithGroq(platformName: string, guidelines: string, userPrompt: string, isRegeneration: boolean = false) {
     const apiKey = process.env.GROQ_API_KEY;
     if (!apiKey) {
+        console.error('[Groq] GROQ_API_KEY not configured in environment');
         throw new Error('GROQ_API_KEY not configured');
     }
 
     const systemPrompt = `You are an expert social media manager. You create highly engaging, viral, and authentic posts for ${platformName}. ${guidelines}`;
+    const regenerationNote = isRegeneration ? '\n\nIMPORTANT: Create a completely NEW and DIFFERENT version of this post while maintaining the same tone and style. Do not repeat the same content.' : '';
+
+    console.log(`[Groq] Generating for ${platformName}...`);
 
     const response = await axios.post(
         'https://api.groq.com/openai/v1/chat/completions',
@@ -112,9 +133,9 @@ async function generateWithGroq(platformName: string, guidelines: string, userPr
             model: "llama-3.3-70b-versatile",
             messages: [
                 { role: "system", content: systemPrompt },
-                { role: "user", content: `Write a post based on the following input:\n\n${userPrompt}\n\nDo not include any commentary or explanations. Just output the final post directly.` }
+                { role: "user", content: `Write a post based on the following input:\n\n${userPrompt}${regenerationNote}\n\nDo not include any commentary or explanations. Just output the final post directly.` }
             ],
-            temperature: 0.7,
+            temperature: isRegeneration ? 0.9 : 0.7,
             max_tokens: 1024,
         },
         {
@@ -125,5 +146,7 @@ async function generateWithGroq(platformName: string, guidelines: string, userPr
         }
     );
 
-    return response.data.choices[0].message.content.trim();
+    const generatedContent = response.data.choices[0].message.content.trim();
+    console.log(`[Groq ${platformName}] Success:`, generatedContent.substring(0, 100));
+    return generatedContent;
 }
