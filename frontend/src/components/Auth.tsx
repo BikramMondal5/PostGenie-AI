@@ -67,7 +67,7 @@ const Auth: React.FC<AuthProps> = ({ onAuthSuccess }) => {
             <div
                 className="absolute inset-0 opacity-[0.03] pointer-events-none"
                 style={{
-                    backgroundImage: `radial-gradient(circle, #ec4899 1px, transparent 1px)`,
+                    backgroundImage: `radial-gradient(circle, #ec4899 0.5px, transparent 0.5px)`,
                     backgroundSize: '32px 32px',
                 }}
             />

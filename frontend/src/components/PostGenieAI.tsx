@@ -1,4 +1,5 @@
 import React, { useState, useRef, useCallback, useEffect } from "react";
+import DotGrid from "./DotGrid";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -15,6 +16,11 @@ import {
   LogIn,
   Check,
   Clock,
+  ChevronDown,
+  ChevronUp,
+  Upload,
+  ImageIcon,
+  X as XIcon,
 } from "lucide-react";
 import ReactQuill from "react-quill";
 import "react-quill/dist/quill.snow.css";
@@ -27,20 +33,7 @@ import { api } from "@/lib/api";
 const cn = (...classes: (string | undefined | null | false)[]) =>
   classes.filter(Boolean).join(" ");
 
-// Dotted Grid Background Component
-const DottedGridBackground: React.FC = () => {
-  return (
-    <div className="absolute inset-0 w-full h-full overflow-hidden">
-      <div
-        className="absolute inset-0"
-        style={{
-          backgroundImage: `radial-gradient(circle, rgba(236, 72, 153, 0.15) 1px, transparent 1px)`,
-          backgroundSize: "24px 24px",
-        }}
-      />
-    </div>
-  );
-};
+// (Deprecated) simple dotted background kept for reference.
 
 // Node Connection Line Component
 interface ConnectionLineProps {
@@ -110,6 +103,7 @@ interface PlatformCardProps {
   onCopy: () => void;
   onExport: () => void;
   onSchedule?: (content: string, date: string, time: string) => void;
+  imageUrl?: string;
 }
 
 const PlatformCard: React.FC<PlatformCardProps> = ({
@@ -121,6 +115,7 @@ const PlatformCard: React.FC<PlatformCardProps> = ({
   onCopy,
   onExport,
   onSchedule = (_c, d, t) => console.log(`Scheduled content to ${platform} for ${d} at ${t}`),
+  imageUrl,
 }) => {
   const [isDragging, setIsDragging] = useState(false);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
@@ -323,6 +318,17 @@ const PlatformCard: React.FC<PlatformCardProps> = ({
           </AnimatePresence>
         </CardHeader>
         <CardContent className="space-y-3">
+          {/* Image Preview if exists */}
+          {imageUrl && (
+            <div className="mb-3">
+              <img
+                src={imageUrl}
+                alt={`${platform} post image`}
+                className="w-full rounded-lg border border-gray-200"
+              />
+            </div>
+          )}
+
           {isEditing ? (
             <div className="bg-white rounded" onMouseDown={(e) => e.stopPropagation()}>
               <ReactQuill
@@ -409,19 +415,164 @@ const PlatformCard: React.FC<PlatformCardProps> = ({
 // Input Node Component
 interface InputNodeProps {
   position: { x: number; y: number };
-  onGenerate: (prompt: string) => void;
+  onGenerate: (prompt: string, images: { [platform: string]: string }) => void;
   isGenerating: boolean;
+  onPositionChange?: (pos: { x: number; y: number }) => void;
+  isInitialCentered?: boolean;
 }
 
 const InputNode: React.FC<InputNodeProps> = ({
   position,
   onGenerate,
   isGenerating,
+  onPositionChange,
+  isInitialCentered,
 }) => {
+  const [activeTab, setActiveTab] = useState<"text" | "image">("text");
   const [prompt, setPrompt] = useState("");
+
+  // Image tab states
+  const [selectedPlatforms, setSelectedPlatforms] = useState<{
+    twitter: boolean;
+    linkedin: boolean;
+    instagram: boolean;
+  }>({ twitter: false, linkedin: false, instagram: false });
+
+  const [expandedPlatform, setExpandedPlatform] = useState<string | null>(null);
+
+  const [imageMode, setImageMode] = useState<{
+    twitter: "upload" | null;
+    linkedin: "upload" | null;
+    instagram: "upload" | null;
+  }>({ twitter: null, linkedin: null, instagram: null });
+
+  const [uploadedImages, setUploadedImages] = useState<{
+    twitter: string | null;
+    linkedin: string | null;
+    instagram: string | null;
+  }>({ twitter: null, linkedin: null, instagram: null });
+
+  // generatingImages (AI) removed - only upload flow remains
+
+  const [previewImages, setPreviewImages] = useState<{
+    twitter: string | null;
+    linkedin: string | null;
+    instagram: string | null;
+  }>({ twitter: null, linkedin: null, instagram: null });
+
+  // Dragging state to allow the input node to be moved by the user
+  const nodeRef = useRef<HTMLDivElement>(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
+
+  const handleMouseDownNode = (e: React.MouseEvent) => {
+    if (nodeRef.current) {
+      const rect = nodeRef.current.getBoundingClientRect();
+      setDragOffset({ x: e.clientX - rect.left, y: e.clientY - rect.top });
+      setIsDragging(true);
+    }
+  };
+
+  const handleMouseMoveNode = useCallback(
+    (e: MouseEvent) => {
+      if (isDragging && nodeRef.current) {
+        const parent = nodeRef.current.parentElement;
+        if (parent) {
+          const parentRect = parent.getBoundingClientRect();
+          const newX = e.clientX - parentRect.left - dragOffset.x;
+          const newY = e.clientY - parentRect.top - dragOffset.y;
+          onPositionChange?.({ x: newX, y: newY });
+        }
+      }
+    },
+    [isDragging, dragOffset, onPositionChange]
+  );
+
+  const handleMouseUpNode = useCallback(() => {
+    setIsDragging(false);
+  }, []);
+
+  useEffect(() => {
+    if (isDragging) {
+      document.addEventListener("mousemove", handleMouseMoveNode);
+      document.addEventListener("mouseup", handleMouseUpNode);
+      return () => {
+        document.removeEventListener("mousemove", handleMouseMoveNode);
+        document.removeEventListener("mouseup", handleMouseUpNode);
+      };
+    }
+  }, [isDragging, handleMouseMoveNode, handleMouseUpNode]);
+
+  const [confirmedImages, setConfirmedImages] = useState<{
+    twitter: string | null;
+    linkedin: string | null;
+    instagram: string | null;
+  }>({ twitter: null, linkedin: null, instagram: null });
+
+  const fileInputRefs = {
+    twitter: useRef<HTMLInputElement>(null),
+    linkedin: useRef<HTMLInputElement>(null),
+    instagram: useRef<HTMLInputElement>(null),
+  };
+
+  const platformConfig = {
+    twitter: { name: "Twitter/X", icon: Twitter, color: "text-black" },
+    linkedin: { name: "LinkedIn", icon: Linkedin, color: "text-blue-600" },
+    instagram: { name: "Instagram", icon: Instagram, color: "text-pink-600" },
+  };
+
+  const handlePlatformToggle = (platform: keyof typeof selectedPlatforms) => {
+    setSelectedPlatforms(prev => ({
+      ...prev,
+      [platform]: !prev[platform]
+    }));
+    if (!selectedPlatforms[platform]) {
+      setExpandedPlatform(platform);
+    } else {
+      setExpandedPlatform(null);
+      setImageMode(prev => ({ ...prev, [platform]: null }));
+      setPreviewImages(prev => ({ ...prev, [platform]: null }));
+      setConfirmedImages(prev => ({ ...prev, [platform]: null }));
+      setUploadedImages(prev => ({ ...prev, [platform]: null }));
+    }
+  };
+
+  const handleFileUpload = (platform: keyof typeof uploadedImages, file: File) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const imageUrl = e.target?.result as string;
+      setUploadedImages(prev => ({ ...prev, [platform]: imageUrl }));
+      setPreviewImages(prev => ({ ...prev, [platform]: imageUrl }));
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+  };
+
+  const handleDrop = (platform: keyof typeof uploadedImages, e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    const files = e.dataTransfer.files;
+    if (files && files[0] && files[0].type.startsWith('image/')) {
+      handleFileUpload(platform, files[0]);
+    }
+  };
+
+  // AI image generation removed; upload-only flow retained
+
+  const removeConfirmedImage = (platform: keyof typeof confirmedImages) => {
+    setConfirmedImages(prev => ({ ...prev, [platform]: null }));
+    setPreviewImages(prev => ({ ...prev, [platform]: null }));
+    setUploadedImages(prev => ({ ...prev, [platform]: null }));
+  };
 
   return (
     <motion.div
+      ref={nodeRef}
       initial={{ opacity: 0, scale: 0.9 }}
       animate={{ opacity: 1, scale: 1 }}
       transition={{ duration: 0.5 }}
@@ -429,45 +580,318 @@ const InputNode: React.FC<InputNodeProps> = ({
       style={{
         left: position.x,
         top: position.y,
-        zIndex: 20,
+        zIndex: isDragging ? 60 : 20,
+        cursor: isDragging ? "grabbing" : "grab",
       }}
     >
-      <Card className="w-[500px] shadow-2xl bg-white border-gray-200">
+      <Card
+        className="w-[720px] shadow-2xl bg-white border-gray-200"
+        onMouseDown={handleMouseDownNode}
+      >
         <CardContent className="p-6 space-y-4">
-          <div className="flex items-center gap-2 mb-2">
-            <div className="p-2 rounded-lg bg-pink-50">
-              <Sparkles className="w-5 h-5 text-pink-600" />
-            </div>
-            <h3 className="text-lg font-semibold text-gray-900">
-              AI Content Generator
-            </h3>
-          </div>
-          <Textarea
-            placeholder="Describe your event, idea, or announcement. PostGenie AI will generate optimized posts for your connected platforms."
-            value={prompt}
-            onChange={(e) => setPrompt(e.target.value)}
-            className="min-h-[120px] resize-none text-gray-900 placeholder:text-gray-400"
-            disabled={isGenerating}
-          />
-          <div className="flex gap-3">
-            <Button
-              className="w-full bg-pink-600 hover:bg-pink-700 text-white"
-              onClick={() => onGenerate(prompt)}
-              disabled={!prompt.trim() || isGenerating}
-            >
-              {isGenerating ? (
-                <>
-                  <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-                  Generating...
-                </>
-              ) : (
-                <>
-                  <Sparkles className="w-4 h-4 mr-2" />
-                  Generate Posts
-                </>
+          {/* Tab Headers */}
+          <div className="flex border-b border-gray-200 mb-4">
+            <button
+              className={cn(
+                "flex-1 pb-3 text-sm font-medium transition-colors relative",
+                activeTab === "text"
+                  ? "text-pink-600"
+                  : "text-gray-500 hover:text-gray-700"
               )}
-            </Button>
+              onClick={() => setActiveTab("text")}
+            >
+              <span className="flex items-center justify-center gap-2">
+                <Sparkles className="w-4 h-4" />
+                Text Post
+              </span>
+              {activeTab === "text" && (
+                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-pink-600" />
+              )}
+            </button>
+            <button
+              className={cn(
+                "flex-1 pb-3 text-sm font-medium transition-colors relative",
+                activeTab === "image"
+                  ? "text-pink-600"
+                  : "text-gray-500 hover:text-gray-700"
+              )}
+              onClick={() => setActiveTab("image")}
+            >
+              <span className="flex items-center justify-center gap-2">
+                <ImageIcon className="w-4 h-4" />
+                Image
+              </span>
+              {activeTab === "image" && (
+                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-pink-600" />
+              )}
+            </button>
           </div>
+
+          {/* Text Post Tab Content */}
+          {activeTab === "text" && (
+            <>
+              <div className="flex items-center gap-2 mb-2">
+                <div className="p-2 rounded-lg bg-pink-50">
+                  <Sparkles className="w-5 h-5 text-pink-600" />
+                </div>
+                <h3 className="text-lg font-semibold text-gray-900">
+                  AI Content Generator
+                </h3>
+              </div>
+              <Textarea
+                placeholder="Describe your event, idea, or announcement. PostGenie AI will generate optimized posts for your connected platforms."
+                value={prompt}
+                onChange={(e) => setPrompt(e.target.value)}
+                className="min-h-[200px] resize-none text-gray-900 placeholder:text-gray-400 text-base"
+                disabled={isGenerating}
+              />
+              <div className="flex gap-3">
+                <Button
+                  className="w-full bg-pink-600 hover:bg-pink-700 text-white"
+                  onClick={() => {
+                    // Collect confirmed images
+                    const images: { [key: string]: string } = {};
+                    Object.keys(confirmedImages).forEach((platform) => {
+                      const key = platform as keyof typeof confirmedImages;
+                      if (confirmedImages[key]) {
+                        images[platform] = confirmedImages[key]!;
+                      }
+                    });
+                    onGenerate(prompt, images);
+                  }}
+                  disabled={!prompt.trim() || isGenerating}
+                >
+                  {isGenerating ? (
+                    <>
+                      <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                      Generating...
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="w-4 h-4 mr-2" />
+                      Generate Posts
+                    </>
+                  )}
+                </Button>
+              </div>
+            </>
+          )}
+
+          {/* Image Generation Tab Content */}
+          {activeTab === "image" && (
+            <div className="max-h-[400px] overflow-y-auto pr-2 custom-pink-scrollbar">
+              <style>{`
+                .custom-pink-scrollbar::-webkit-scrollbar {
+                  width: 8px;
+                }
+                .custom-pink-scrollbar::-webkit-scrollbar-track {
+                  background: #fce7f3;
+                  border-radius: 4px;
+                }
+                .custom-pink-scrollbar::-webkit-scrollbar-thumb {
+                  background: #fbcfe8;
+                  border-radius: 4px;
+                }
+                .custom-pink-scrollbar::-webkit-scrollbar-thumb:hover {
+                  background: #f9a8d4;
+                }
+              `}</style>
+              <div className="flex items-center gap-2 mb-2">
+                <div className="p-2 rounded-lg bg-pink-50">
+                  <ImageIcon className="w-5 h-5 text-pink-600" />
+                </div>
+                <div className="flex-1">
+                  <h3 className="text-lg font-semibold text-gray-900">
+                    Upload Images
+                  </h3>
+                  <p className="text-xs text-gray-500 mt-0.5">
+                    Upload images for your platforms. They'll be included when you generate text posts.
+                  </p>
+                </div>
+              </div>
+
+              {/* Platform Checkboxes */}
+              <div className="space-y-3">
+                {Object.entries(platformConfig).map(([platform, config]) => {
+                  const platformKey = platform as keyof typeof selectedPlatforms;
+                  const Icon = config.icon;
+                  const isExpanded = expandedPlatform === platform;
+                  const hasConfirmedImage = confirmedImages[platformKey];
+
+                  return (
+                    <div key={platform} className="border border-gray-200 rounded-lg p-3">
+                      {/* Platform Header */}
+                      <div className="flex items-center justify-between">
+                        <label className="flex items-center gap-2 cursor-pointer flex-1">
+                          <input
+                            type="checkbox"
+                            checked={selectedPlatforms[platformKey]}
+                            onChange={() => handlePlatformToggle(platformKey)}
+                            className="w-4 h-4 text-pink-600 border-gray-300 rounded focus:ring-pink-500"
+                          />
+                          <Icon className={cn("w-5 h-5", config.color)} />
+                          <span className="text-sm font-medium text-gray-700">
+                            {config.name}
+                          </span>
+                          {hasConfirmedImage && (
+                            <Check className="w-4 h-4 text-green-600 ml-auto" />
+                          )}
+                        </label>
+                        {selectedPlatforms[platformKey] && (
+                          <button
+                            onClick={() => setExpandedPlatform(isExpanded ? null : platform)}
+                            className="ml-2 text-gray-400 hover:text-gray-600"
+                          >
+                            {isExpanded ? (
+                              <ChevronUp className="w-4 h-4" />
+                            ) : (
+                              <ChevronDown className="w-4 h-4" />
+                            )}
+                          </button>
+                        )}
+                      </div>
+
+                      {/* Confirmed Image Preview */}
+                      {hasConfirmedImage && !isExpanded && (
+                        <div className="mt-2 relative">
+                          <img
+                            src={confirmedImages[platformKey]!}
+                            alt={`${platform} confirmed`}
+                            className="w-full h-24 object-cover rounded border border-gray-200"
+                          />
+                          <button
+                            onClick={() => removeConfirmedImage(platformKey)}
+                            className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 hover:bg-red-600"
+                          >
+                            <XIcon className="w-3 h-3" />
+                          </button>
+                        </div>
+                      )}
+
+                      {/* Expanded Content */}
+                      <AnimatePresence>
+                        {selectedPlatforms[platformKey] && isExpanded && (
+                          <motion.div
+                            initial={{ height: 0, opacity: 0 }}
+                            animate={{ height: "auto", opacity: 1 }}
+                            exit={{ height: 0, opacity: 0 }}
+                            transition={{ duration: 0.2 }}
+                            className="overflow-hidden"
+                          >
+                            <div className="mt-3 space-y-3 border-t border-gray-200 pt-3">
+                              {/* Image Mode Selection */}
+                              <div className="flex gap-2">
+                                <button
+                                  onClick={() => setImageMode(prev => ({
+                                    ...prev,
+                                    [platformKey]: prev[platformKey] === "upload" ? null : "upload"
+                                  }))}
+                                  className={cn(
+                                    "flex-1 py-2 px-3 text-xs font-medium rounded-md border transition-colors",
+                                    imageMode[platformKey] === "upload"
+                                      ? "bg-pink-50 border-pink-600 text-pink-600"
+                                      : "bg-white border-gray-300 text-gray-700 hover:bg-gray-50"
+                                  )}
+                                >
+                                  <Upload className="w-3 h-3 inline mr-1" />
+                                  Upload Image
+                                </button>
+                              </div>
+
+                              {/* Upload Mode */}
+                              {imageMode[platformKey] === "upload" && (
+                                <div
+                                  onDragOver={handleDragOver}
+                                  onDrop={(e) => handleDrop(platformKey, e)}
+                                  className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center hover:border-pink-400 transition-colors cursor-pointer"
+                                  onClick={() => fileInputRefs[platformKey].current?.click()}
+                                >
+                                  <Upload className="w-8 h-8 mx-auto text-gray-400 mb-2" />
+                                  <p className="text-xs text-gray-600">
+                                    Drag & drop or click to upload
+                                  </p>
+                                  <input
+                                    ref={fileInputRefs[platformKey]}
+                                    type="file"
+                                    accept="image/*"
+                                    className="hidden"
+                                    onChange={(e) => {
+                                      const file = e.target.files?.[0];
+                                      if (file) handleFileUpload(platformKey, file);
+                                    }}
+                                  />
+                                </div>
+                              )}
+
+                              {/* AI generation removed; upload-only flow above */}
+
+                              {/* Image Preview (for uploads) */}
+                              {previewImages[platformKey] && !confirmedImages[platformKey] && (
+                                <div className="space-y-2">
+                                  <img
+                                    src={previewImages[platformKey]!}
+                                    alt={`${platform} preview`}
+                                    className="w-full rounded-lg border border-gray-200"
+                                  />
+                                  <div className="flex gap-2">
+                                    <Button
+                                      size="sm"
+                                      className="flex-1 bg-green-600 hover:bg-green-700 text-white"
+                                      onClick={() => {
+                                        // Confirm the uploaded preview
+                                        const imageUrl = previewImages[platformKey];
+                                        if (imageUrl) setConfirmedImages(prev => ({ ...prev, [platformKey]: imageUrl }));
+                                      }}
+                                    >
+                                      <Check className="w-3 h-3 mr-1" />
+                                      Confirm
+                                    </Button>
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      onClick={() => setPreviewImages(prev => ({ ...prev, [platformKey]: null }))}
+                                    >
+                                      <XIcon className="w-3 h-3 mr-1" />
+                                      Cancel
+                                    </Button>
+                                  </div>
+                                </div>
+                              )}
+
+                              {/* Confirmed Image */}
+                              {confirmedImages[platformKey] && (
+                                <div className="space-y-2">
+                                  <div className="relative">
+                                    <img
+                                      src={confirmedImages[platformKey]!}
+                                      alt={`${platform} confirmed`}
+                                      className="w-full rounded-lg border-2 border-green-500"
+                                    />
+                                    <div className="absolute top-2 right-2 bg-green-500 text-white rounded-full p-1">
+                                      <Check className="w-4 h-4" />
+                                    </div>
+                                  </div>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="w-full"
+                                    onClick={() => removeConfirmedImage(platformKey)}
+                                  >
+                                    <XIcon className="w-3 h-3 mr-1" />
+                                    Remove Image
+                                  </Button>
+                                </div>
+                              )}
+                            </div>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
     </motion.div>
@@ -487,13 +911,16 @@ const PostGenieAI: React.FC<PostGenieAIProps> = ({ onLogout }) => {
       platform: "twitter" | "linkedin" | "instagram";
       content: string;
       position: { x: number; y: number };
+      imageUrl?: string;
     }>
   >([]);
   const canvasRef = useRef<HTMLDivElement>(null);
 
-  const inputNodePosition = { x: 100, y: 200 };
+  const [inputNodePosition, setInputNodePosition] = useState({ x: 100, y: 200 });
+  const [isInitialCentered, setIsInitialCentered] = useState(false);
+  const [inputNodeWidth, setInputNodeWidth] = useState(500);
 
-  const handleGenerate = async (prompt: string) => {
+  const handleGenerate = async (prompt: string, images: { [platform: string]: string }) => {
     setIsGenerating(true);
 
     try {
@@ -501,10 +928,11 @@ const PostGenieAI: React.FC<PostGenieAIProps> = ({ onLogout }) => {
       const response = await api.post("/content/generate", { prompt });
 
       if (response && response.data && response.data.posts) {
-        // Map the backend structure to our frontend format
+        // Map the backend structure to our frontend format and attach images
         const newPosts = response.data.posts.map((post: any, index: number) => ({
           platform: post.platform,
           content: post.content,
+          imageUrl: images[post.platform] || undefined,
           position: {
             x: inputNodePosition.x + 600,
             y: inputNodePosition.y + index * 280 - 200,
@@ -521,6 +949,18 @@ const PostGenieAI: React.FC<PostGenieAIProps> = ({ onLogout }) => {
       setIsGenerating(false);
     }
   };
+
+  // Always keep the input node centered
+  useEffect(() => {
+    if (canvasRef.current) {
+      const rect = canvasRef.current.getBoundingClientRect();
+      const centeredX = rect.width / 2 - 360; // half of enlarged width (720)
+      const centeredY = rect.height / 2 - 180; // approximate half height
+      setInputNodePosition({ x: Math.max(20, centeredX), y: Math.max(20, centeredY) });
+      setIsInitialCentered(true);
+      setInputNodeWidth(720);
+    }
+  }, []);
 
 
   const handlePostPublish = async (platform: string, content: string, date: string, time: string) => {
@@ -546,7 +986,7 @@ const PostGenieAI: React.FC<PostGenieAIProps> = ({ onLogout }) => {
 
   const getConnectionPoints = () => {
     const inputCenter = {
-      x: inputNodePosition.x + 250,
+      x: inputNodePosition.x + (inputNodeWidth / 2),
       y: inputNodePosition.y + 100,
     };
 
@@ -561,7 +1001,7 @@ const PostGenieAI: React.FC<PostGenieAIProps> = ({ onLogout }) => {
 
   return (
     <div className="w-full h-screen bg-white overflow-hidden relative">
-      <DottedGridBackground />
+      <DotGrid baseColor="#FCE7F3" activeColor="#F472B6" dotSize={6} gap={24} />
 
       {/* Top Navigation */}
       <nav className="relative z-50 border-b border-gray-200 bg-white/80 backdrop-blur-sm">
@@ -614,6 +1054,16 @@ const PostGenieAI: React.FC<PostGenieAIProps> = ({ onLogout }) => {
           position={inputNodePosition}
           onGenerate={handleGenerate}
           isGenerating={isGenerating}
+          onPositionChange={(pos) => {
+            setInputNodePosition(pos);
+            // if this was the initial centered state, mark moved and shrink to normal
+            if (isInitialCentered) {
+              localStorage.setItem("postgenie_input_moved", "true");
+              setIsInitialCentered(false);
+              setInputNodeWidth(500);
+            }
+          }}
+          isInitialCentered={isInitialCentered}
         />
 
         {/* Platform Cards */}
@@ -627,13 +1077,14 @@ const PostGenieAI: React.FC<PostGenieAIProps> = ({ onLogout }) => {
               onPositionChange={(pos) => updateCardPosition(index, pos)}
               onRegenerate={() => {
                 console.log("Regenerate", post.platform);
-                handleGenerate(post.content); // basic regeneration
+                handleGenerate(post.content, {}); // basic regeneration
               }}
               onCopy={() => {
                 console.log("Copied to clipboard");
               }}
               onExport={() => console.log("Exported", post.platform)}
               onSchedule={(content, date, time) => handlePostPublish(post.platform, content, date, time)}
+              imageUrl={post.imageUrl}
             />
           ))}
         </AnimatePresence>
@@ -659,5 +1110,5 @@ const PostGenieAI: React.FC<PostGenieAIProps> = ({ onLogout }) => {
   );
 };
 
-export { DottedGridBackground, ConnectionLine, PlatformCard, InputNode };
+export { ConnectionLine, PlatformCard, InputNode };
 export default PostGenieAI;

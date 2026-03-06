@@ -245,6 +245,25 @@ export class PostGenieStack extends cdk.Stack {
     const generateResource = contentResource.addResource('generate');
     generateResource.addMethod('POST', new apigateway.LambdaIntegration(generateContentFunction));
 
+    // Image Generation
+    const generateImageFunction = new lambdaNodejs.NodejsFunction(this, 'GenerateImageFunction', {
+      runtime: lambda.Runtime.NODEJS_18_X,
+      entry: path.join(__dirname, '../../backend/src/functions/content/generateImage.ts'),
+      handler: 'handler',
+      role: lambdaRole,
+      environment: {
+        JWT_SECRET: process.env.JWT_SECRET || 'change-me-in-production',
+      },
+      timeout: cdk.Duration.seconds(30),
+      bundling: {
+        minify: true,
+        sourceMap: true,
+      },
+    });
+
+    const generateImageResource = contentResource.addResource('generate-image');
+    generateImageResource.addMethod('POST', new apigateway.LambdaIntegration(generateImageFunction));
+
     // OAuth Functions
     const initiateOauthFunction = new lambdaNodejs.NodejsFunction(this, 'InitiateOauthFunction', {
       runtime: lambda.Runtime.NODEJS_18_X,
