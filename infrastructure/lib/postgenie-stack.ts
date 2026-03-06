@@ -6,6 +6,8 @@ import * as apigateway from 'aws-cdk-lib/aws-apigateway';
 import * as secretsmanager from 'aws-cdk-lib/aws-secretsmanager';
 import * as iam from 'aws-cdk-lib/aws-iam';
 import * as lambdaNodejs from 'aws-cdk-lib/aws-lambda-nodejs';
+import * as events from 'aws-cdk-lib/aws-events';
+import * as targets from 'aws-cdk-lib/aws-events-targets';
 import * as path from 'path';
 
 export class PostGenieStack extends cdk.Stack {
@@ -80,6 +82,13 @@ export class PostGenieStack extends cdk.Stack {
       indexName: 'UserIdIndex',
       partitionKey: { name: 'userId', type: dynamodb.AttributeType.STRING },
       sortKey: { name: 'createdAt', type: dynamodb.AttributeType.STRING },
+    });
+
+    // Add GSI for scheduler queries
+    postsTable.addGlobalSecondaryIndex({
+      indexName: 'ScheduledAtIndex',
+      partitionKey: { name: 'status', type: dynamodb.AttributeType.STRING },
+      sortKey: { name: 'scheduledAt', type: dynamodb.AttributeType.STRING },
     });
 
     // Secrets Manager for OAuth credentials
@@ -342,6 +351,7 @@ export class PostGenieStack extends cdk.Stack {
       role: lambdaRole,
       environment: {
         CONNECTIONS_TABLE: connectionsTable.tableName,
+        POSTS_TABLE: postsTable.tableName,
         JWT_SECRET: process.env.JWT_SECRET || 'change-me-in-production',
         ENCRYPTION_KEY: process.env.ENCRYPTION_KEY || 'postgenie-secret-key-32-char-!!!',
       },
@@ -351,6 +361,26 @@ export class PostGenieStack extends cdk.Stack {
 
     const publishResource = api.root.addResource('publish');
     publishResource.addMethod('POST', new apigateway.LambdaIntegration(publishPostFunction));
+
+    // Scheduler
+    const schedulerFunction = new lambdaNodejs.NodejsFunction(this, 'SchedulerFunction', {
+      runtime: lambda.Runtime.NODEJS_18_X,
+      entry: path.join(__dirname, '../../backend/src/functions/publish/scheduler.ts'),
+      handler: 'handler',
+      role: lambdaRole,
+      environment: {
+        CONNECTIONS_TABLE: connectionsTable.tableName,
+        POSTS_TABLE: postsTable.tableName,
+        ENCRYPTION_KEY: process.env.ENCRYPTION_KEY || 'postgenie-secret-key-32-char-!!!',
+      },
+      timeout: cdk.Duration.seconds(60),
+      bundling: { minify: true, sourceMap: true },
+    });
+
+    const rule = new events.Rule(this, 'ScheduleRule', {
+      schedule: events.Schedule.rate(cdk.Duration.minutes(1)),
+    });
+    rule.addTarget(new targets.LambdaFunction(schedulerFunction));
 
     // Output values
     new cdk.CfnOutput(this, 'ApiUrl', {

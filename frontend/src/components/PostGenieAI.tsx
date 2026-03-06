@@ -21,6 +21,7 @@ import {
   Upload,
   ImageIcon,
   X as XIcon,
+  Loader2,
 } from "lucide-react";
 import ReactQuill from "react-quill";
 import "react-quill/dist/quill.snow.css";
@@ -129,6 +130,9 @@ const PlatformCard: React.FC<PlatformCardProps> = ({
   const [scheduleDate, setScheduleDate] = useState("");
   const [scheduleTime, setScheduleTime] = useState("");
   const [isCopied, setIsCopied] = useState(false);
+  const [isPosting, setIsPosting] = useState(false);
+  const [isScheduled, setIsScheduled] = useState(false);
+  const [scheduledInfo, setScheduledInfo] = useState<{ date: string; time: string } | null>(null);
 
   useEffect(() => {
     // Basic formatting of newlines and bold from AI output
@@ -144,7 +148,7 @@ const PlatformCard: React.FC<PlatformCardProps> = ({
       .replace(/<[^>]+>/g, '')
       .replace(/&nbsp;/g, ' ');
     navigator.clipboard.writeText(textContent);
-    
+
     // Trigger confetti from button position
     const rect = e.currentTarget.getBoundingClientRect();
     const x = (rect.left + rect.width / 2) / window.innerWidth;
@@ -160,7 +164,7 @@ const PlatformCard: React.FC<PlatformCardProps> = ({
 
     setIsCopied(true);
     setTimeout(() => setIsCopied(false), 2000);
-    
+
     onCopy();
   };
 
@@ -323,19 +327,40 @@ const PlatformCard: React.FC<PlatformCardProps> = ({
                 </div>
                 <Button
                   size="sm"
-                  className="w-full bg-pink-600 hover:bg-pink-700 text-white mt-1"
-                  disabled={!scheduleDate || !scheduleTime}
-                  onClick={() => {
+                  className="w-full bg-pink-600 hover:bg-pink-700 text-white mt-1 disabled:opacity-50"
+                  disabled={!scheduleDate || !scheduleTime || isPosting}
+                  onClick={async (e) => {
+                    e.stopPropagation();
+                    setIsPosting(true);
+
                     const textContent = localContent
                       .replace(/<br\s*\/?>/gi, '\n')
                       .replace(/<[^>]+>/g, '')
                       .replace(/&nbsp;/g, ' ');
-                    onSchedule(textContent, scheduleDate, scheduleTime);
-                    setShowSchedule(false);
+
+                    try {
+                      await onSchedule(textContent, scheduleDate, scheduleTime);
+                      setIsScheduled(true);
+                      setScheduledInfo({ date: scheduleDate, time: scheduleTime });
+                      setShowSchedule(false);
+                      setScheduleDate('');
+                      setScheduleTime('');
+                    } finally {
+                      setIsPosting(false);
+                    }
                   }}
                 >
-                  <Check className="w-3 h-3 mr-2" />
-                  Confirm Schedule
+                  {isPosting ? (
+                    <>
+                      <Loader2 className="w-3 h-3 mr-2 animate-spin" />
+                      Scheduling...
+                    </>
+                  ) : (
+                    <>
+                      <Icon className="w-3 h-3 mr-2" />
+                      Schedule Post to {config.postName}
+                    </>
+                  )}
                 </Button>
               </motion.div>
             )}
@@ -440,22 +465,56 @@ const PlatformCard: React.FC<PlatformCardProps> = ({
             )}
           </div>
 
-          {/* Post Button */}
+          {/* Post Button - Only show when not editing */}
           {!isEditing && (
-            <Button
-              className="w-full bg-pink-600 hover:bg-pink-700 text-white mt-2"
-              onClick={(e) => {
-                e.stopPropagation();
-                const textContent = localContent
-                  .replace(/<br\s*\/?>/gi, '\n')
-                  .replace(/<[^>]+>/g, '')
-                  .replace(/&nbsp;/g, ' ');
-                onPost(textContent, imageUrl);
-              }}
-            >
-              <Icon className="w-4 h-4 mr-2" />
-              Post to {config.postName}
-            </Button>
+            <>
+              {isScheduled && scheduledInfo ? (
+                <div className="w-full bg-green-50 border-2 border-green-500 text-green-700 rounded-lg px-4 py-3 text-center">
+                  <div className="flex items-center justify-center gap-2 mb-1">
+                    <Check className="w-5 h-5" />
+                    <span className="font-semibold">Post Scheduled</span>
+                  </div>
+                  <p className="text-sm">
+                    📅 {scheduledInfo.date} at {scheduledInfo.time}
+                  </p>
+                  <p className="text-xs mt-1 text-green-600">
+                    Your post will be automatically published at the scheduled time
+                  </p>
+                </div>
+              ) : (
+                <Button
+                  className="w-full bg-pink-600 hover:bg-pink-700 text-white disabled:opacity-50"
+                  disabled={isPosting}
+                  onClick={async (e) => {
+                    e.stopPropagation();
+                    setIsPosting(true);
+
+                    const textContent = localContent
+                      .replace(/<br\s*\/?>/gi, '\n')
+                      .replace(/<[^>]+>/g, '')
+                      .replace(/&nbsp;/g, ' ');
+
+                    try {
+                      await onPost(textContent, imageUrl);
+                    } finally {
+                      setIsPosting(false);
+                    }
+                  }}
+                >
+                  {isPosting ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Posting...
+                    </>
+                  ) : (
+                    <>
+                      <Icon className="w-4 h-4 mr-2" />
+                      Post to {config.postName}
+                    </>
+                  )}
+                </Button>
+              )}
+            </>
           )}
         </CardContent>
       </Card>
@@ -690,7 +749,7 @@ const InputNode: React.FC<InputNodeProps> = ({
                   AI Content Generator
                 </h3>
               </div>
-              
+
               <div className="space-y-3">
                 <div>
                   <label className="text-sm font-medium text-gray-700 mb-1.5 block">
@@ -705,7 +764,7 @@ const InputNode: React.FC<InputNodeProps> = ({
                     required
                   />
                 </div>
-                
+
                 <div>
                   <label className="text-sm font-medium text-gray-700 mb-1.5 block">
                     Description
@@ -719,16 +778,16 @@ const InputNode: React.FC<InputNodeProps> = ({
                   />
                 </div>
               </div>
-              
+
               <div className="flex gap-3">
                 <Button
                   className="w-full bg-pink-600 hover:bg-pink-700 text-white h-12"
                   onClick={() => {
                     // Combine topic and description into prompt
-                    const fullPrompt = description 
+                    const fullPrompt = description
                       ? `Topic: ${topic}\n\nDescription: ${description}`
                       : `Topic: ${topic}`;
-                    
+
                     // Collect confirmed images
                     const images: { [key: string]: string } = {};
                     Object.keys(confirmedImages).forEach((platform) => {
@@ -1045,11 +1104,31 @@ const PostGenieAI: React.FC<PostGenieAIProps> = ({ onLogout }) => {
   }, []);
 
 
-  const handlePostPublish = async (platform: string, content: string, date: string, time: string) => {
+  const handlePostPublish = async (
+    platform: string,
+    content: string,
+    date: string,
+    time: string
+  ) => {
     try {
-      const response = await api.post("/publish", { platform, content, scheduledAt: `${date}T${time}` });
+      const localDate = new Date(`${date}T${time}`);
+      const response = await api.post("/publish", {
+        platform,
+        content,
+        scheduledAt: localDate.toISOString()
+      });
       if (response && response.data && response.data.success) {
-        alert(`Successfully published to ${platform}!`);
+        if (response.data.scheduled) {
+          alert(`✅ Post scheduled for ${platform} at ${date} ${time}!\n\nYour post will be automatically published at the scheduled time.`);
+        } else {
+          alert(`Successfully published to ${platform}!`);
+        }
+      } else if (response && response.success) {
+        if (response.scheduled) {
+          alert(`✅ Post scheduled for ${platform} at ${date} ${time}!\n\nYour post will be automatically published at the scheduled time.`);
+        } else {
+          alert(`Successfully published to ${platform}!`);
+        }
       }
     } catch (error: any) {
       console.error("Publishing failed:", error);
@@ -1059,13 +1138,15 @@ const PostGenieAI: React.FC<PostGenieAIProps> = ({ onLogout }) => {
 
   const handlePostNow = async (platform: string, content: string, imageUrl?: string) => {
     try {
-      const response = await api.post("/publish", { 
-        platform, 
-        content, 
-        imageUrl,
-        scheduledAt: new Date().toISOString() 
+      const response = await api.post("/publish", {
+        platform,
+        content,
+        imageUrl
+        // intentionally omitting scheduledAt so it posts immediately
       });
       if (response && response.data && response.data.success) {
+        alert(`Successfully posted to ${platform}!`);
+      } else if (response && response.success) {
         alert(`Successfully posted to ${platform}!`);
       }
     } catch (error: any) {
@@ -1091,7 +1172,7 @@ const PostGenieAI: React.FC<PostGenieAIProps> = ({ onLogout }) => {
 
     try {
       // Call backend to regenerate for specific platform
-      const response = await api.post("/content/generate", { 
+      const response = await api.post("/content/generate", {
         prompt: originalPrompt,
         platforms: [platform]
       });

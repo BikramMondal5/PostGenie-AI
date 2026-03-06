@@ -1,11 +1,13 @@
 import { APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda';
 import axios from 'axios';
 import { ConnectionRepository } from '../../repositories/ConnectionRepository';
+import { PostRepository } from '../../repositories/PostRepository';
 import { verifyToken, extractTokenFromHeader } from '../../utils/jwt';
 
 import { getOAuthSecrets } from '../../utils/secrets';
 
 const connectionRepo = new ConnectionRepository();
+const postRepo = new PostRepository();
 
 export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
     // 1. Auth check
@@ -55,7 +57,7 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
         };
     }
 
-    const { platform, content } = body;
+    const { platform, content, scheduledAt, imageUrl } = body;
 
     if (!platform || !content) {
         return {
@@ -63,6 +65,56 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
             headers: getCorsHeaders(),
             body: JSON.stringify({ message: 'platform and content are required' })
         };
+    }
+
+    // If scheduledAt is provided, store the post for later publishing
+    if (scheduledAt) {
+        const scheduledTime = new Date(scheduledAt);
+        const now = new Date();
+        
+        if (scheduledTime <= now) {
+            return {
+                statusCode: 400,
+                headers: getCorsHeaders(),
+                body: JSON.stringify({ success: false, message: 'Scheduled time must be in the future' })
+            };
+        }
+
+        // Store scheduled post in DynamoDB
+        try {
+            const scheduledPost = await postRepo.createScheduledPost({
+                userId,
+                platform,
+                content,
+                imageUrl,
+                scheduledAt: scheduledTime.toISOString(),
+            });
+
+            console.log(`Scheduled post created: ${scheduledPost.postId} for ${platform} at ${scheduledAt}`);
+            
+            return {
+                statusCode: 200,
+                headers: getCorsHeaders(),
+                body: JSON.stringify({
+                    success: true,
+                    message: `Post scheduled for ${platform} at ${scheduledAt}`,
+                    scheduled: true,
+                    scheduledAt,
+                    postId: scheduledPost.postId,
+                })
+            };
+        } catch (error: any) {
+            console.error('Failed to create scheduled post:', error);
+            return {
+                statusCode: 500,
+                headers: getCorsHeaders(),
+                body: JSON.stringify({ 
+                    success: false, 
+                    message: 'Failed to schedule post',
+                    error: error.message 
+                })
+            };
+        }
     }
 
     try {
