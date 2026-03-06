@@ -25,6 +25,7 @@ import {
 import ReactQuill from "react-quill";
 import "react-quill/dist/quill.snow.css";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -479,7 +480,8 @@ const InputNode: React.FC<InputNodeProps> = ({
   isInitialCentered,
 }) => {
   const [activeTab, setActiveTab] = useState<"text" | "image">("text");
-  const [prompt, setPrompt] = useState("");
+  const [topic, setTopic] = useState("");
+  const [description, setDescription] = useState("");
 
   // Image tab states
   const [selectedPlatforms, setSelectedPlatforms] = useState<{
@@ -635,10 +637,10 @@ const InputNode: React.FC<InputNodeProps> = ({
       }}
     >
       <Card
-        className="w-[720px] shadow-2xl bg-white border-gray-200"
+        className="w-[580px] shadow-2xl bg-white border-gray-200"
         onMouseDown={handleMouseDownNode}
       >
-        <CardContent className="p-6 space-y-4">
+        <CardContent className="p-6 space-y-4 min-h-[420px]">
           {/* Tab Headers */}
           <div className="flex border-b border-gray-200 mb-4">
             <button
@@ -688,17 +690,45 @@ const InputNode: React.FC<InputNodeProps> = ({
                   AI Content Generator
                 </h3>
               </div>
-              <Textarea
-                placeholder="Describe your event, idea, or announcement. PostGenie AI will generate optimized posts for your connected platforms."
-                value={prompt}
-                onChange={(e) => setPrompt(e.target.value)}
-                className="min-h-[200px] resize-none text-gray-900 placeholder:text-gray-400 text-base"
-                disabled={isGenerating}
-              />
+              
+              <div className="space-y-3">
+                <div>
+                  <label className="text-sm font-medium text-gray-700 mb-1.5 block">
+                    Topic <span className="text-red-500">*</span>
+                  </label>
+                  <Input
+                    placeholder="e.g., Product Launch, Event Announcement, Achievement"
+                    value={topic}
+                    onChange={(e) => setTopic(e.target.value)}
+                    className="text-gray-900 placeholder:text-gray-400"
+                    disabled={isGenerating}
+                    required
+                  />
+                </div>
+                
+                <div>
+                  <label className="text-sm font-medium text-gray-700 mb-1.5 block">
+                    Description
+                  </label>
+                  <Textarea
+                    placeholder="Provide details about your topic. The more context you give, the better the AI-generated posts will be."
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                    className="min-h-[150px] resize-none text-gray-900 placeholder:text-gray-400 text-base"
+                    disabled={isGenerating}
+                  />
+                </div>
+              </div>
+              
               <div className="flex gap-3">
                 <Button
-                  className="w-full bg-pink-600 hover:bg-pink-700 text-white"
+                  className="w-full bg-pink-600 hover:bg-pink-700 text-white h-12"
                   onClick={() => {
+                    // Combine topic and description into prompt
+                    const fullPrompt = description 
+                      ? `Topic: ${topic}\n\nDescription: ${description}`
+                      : `Topic: ${topic}`;
+                    
                     // Collect confirmed images
                     const images: { [key: string]: string } = {};
                     Object.keys(confirmedImages).forEach((platform) => {
@@ -707,9 +737,9 @@ const InputNode: React.FC<InputNodeProps> = ({
                         images[platform] = confirmedImages[key]!;
                       }
                     });
-                    onGenerate(prompt, images);
+                    onGenerate(fullPrompt, images);
                   }}
-                  disabled={!prompt.trim() || isGenerating}
+                  disabled={!topic.trim() || isGenerating}
                 >
                   {isGenerating ? (
                     <>
@@ -1006,11 +1036,11 @@ const PostGenieAI: React.FC<PostGenieAIProps> = ({ onLogout }) => {
   useEffect(() => {
     if (canvasRef.current) {
       const rect = canvasRef.current.getBoundingClientRect();
-      const centeredX = rect.width / 2 - 360; // half of enlarged width (720)
-      const centeredY = rect.height / 2 - 180; // approximate half height
+      const centeredX = rect.width / 2 - 290; // half of width (580)
+      const centeredY = rect.height / 2 - 240; // half of approximate height (480)
       setInputNodePosition({ x: Math.max(20, centeredX), y: Math.max(20, centeredY) });
       setIsInitialCentered(true);
-      setInputNodeWidth(720);
+      setInputNodeWidth(580);
     }
   }, []);
 
@@ -1204,11 +1234,16 @@ const PostGenieAI: React.FC<PostGenieAIProps> = ({ onLogout }) => {
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="absolute bottom-8 left-1/2 transform -translate-x-1/2 z-30"
+            className="absolute z-30"
+            style={{
+              left: inputNodePosition.x + 290 - 200, // center relative to input node (290 is half of 580px width)
+              top: inputNodePosition.y + 500, // position below the input node
+              transform: 'translateX(-50%)',
+            }}
           >
             <Badge
               variant="outline"
-              className="px-4 py-2 bg-white/90 backdrop-blur-sm border-gray-200 text-gray-700"
+              className="px-4 py-2 bg-white/90 backdrop-blur-sm border-gray-200 text-gray-700 whitespace-nowrap"
             >
               <Sparkles className="w-3 h-3 mr-2 text-pink-600" />
               Enter your idea to generate posts for all connected platforms
