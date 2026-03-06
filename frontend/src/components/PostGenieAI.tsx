@@ -528,7 +528,6 @@ interface InputNodeProps {
   onGenerate: (prompt: string, images: { [platform: string]: string }) => void;
   isGenerating: boolean;
   onPositionChange?: (pos: { x: number; y: number }) => void;
-  isInitialCentered?: boolean;
 }
 
 const InputNode: React.FC<InputNodeProps> = ({
@@ -536,7 +535,6 @@ const InputNode: React.FC<InputNodeProps> = ({
   onGenerate,
   isGenerating,
   onPositionChange,
-  isInitialCentered,
 }) => {
   const [activeTab, setActiveTab] = useState<"text" | "image">("text");
   const [topic, setTopic] = useState("");
@@ -1155,7 +1153,7 @@ const PostGenieAI: React.FC<PostGenieAIProps> = ({ onLogout }) => {
     }
   };
 
-  const handleRegeneratePlatform = async (platform: string, originalPrompt: string, index: number, imageUrl?: string) => {
+  const handleRegeneratePlatform = async (platform: string, originalPrompt: string, index: number) => {
     if (!originalPrompt) {
       alert("Cannot regenerate: original prompt not found. Please generate posts first.");
       return;
@@ -1284,7 +1282,6 @@ const PostGenieAI: React.FC<PostGenieAIProps> = ({ onLogout }) => {
               setInputNodeWidth(500);
             }
           }}
-          isInitialCentered={isInitialCentered}
         />
 
         {/* Platform Cards */}
@@ -1297,7 +1294,7 @@ const PostGenieAI: React.FC<PostGenieAIProps> = ({ onLogout }) => {
               position={post.position}
               onPositionChange={(pos) => updateCardPosition(index, pos)}
               onRegenerate={() => {
-                handleRegeneratePlatform(post.platform, originalPrompt, index, post.imageUrl);
+                handleRegeneratePlatform(post.platform, originalPrompt, index);
               }}
               onCopy={() => {
                 console.log("Copied to clipboard");
