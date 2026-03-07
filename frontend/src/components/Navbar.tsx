@@ -78,10 +78,13 @@ const Navbar: React.FC<NavbarProps> = ({ onLogout }) => {
                         Fine Tuning
                     </button>
                     <button
-                        onClick={() => window.open('https://docs.postgenie.ai', '_blank')}
-                        className="text-sm font-bold text-gray-600 hover:text-pink-600 transition-all flex items-center gap-2.5 group"
+                        onClick={() => navigate('/docs')}
+                        className={cn(
+                            "text-sm font-bold transition-all flex items-center gap-2.5 group",
+                            isPathActive('/docs') ? "text-pink-600" : "text-gray-600 hover:text-pink-600"
+                        )}
                     >
-                        <FileText className="w-4 h-4 text-gray-400 group-hover:text-pink-600 transition-colors" />
+                        <FileText className={cn("w-4 h-4 transition-colors", isPathActive('/docs') ? "text-pink-600" : "text-gray-400 group-hover:text-pink-600")} />
                         Docs
                     </button>
                 </div>

@@ -249,7 +249,7 @@ const VoiceTrainer: React.FC = () => {
                                         <Button
                                             onClick={() => handleSaveInstruction(activePlatform)}
                                             disabled={isSaving[activePlatform]}
-                                            className="bg-pink-600 hover:bg-pink-700 text-white rounded-2xl px-8 h-14 font-bold shadow-md shadow-pink-200/50 transition-all flex items-center gap-3 transform hover:scale-105"
+                                            className="bg-pink-500 hover:bg-pink-600 text-white rounded-2xl px-8 h-14 font-bold shadow-md shadow-pink-200/50 transition-all flex items-center gap-3 transform hover:scale-105"
                                         >
                                             {isSaving[activePlatform] ? (
                                                 <RefreshCw className="w-5 h-5 animate-spin" />

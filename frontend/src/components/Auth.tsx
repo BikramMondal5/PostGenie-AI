@@ -164,7 +164,7 @@ const Auth: React.FC<AuthProps> = ({ onAuthSuccess }) => {
 
                             <Button
                                 type="submit"
-                                className="w-full bg-pink-600 hover:bg-pink-700 text-white h-11 transition-all duration-200 shadow-md hover:shadow-lg active:scale-[0.98]"
+                                className="w-full bg-pink-500 hover:bg-pink-600 text-white h-11 transition-all duration-200 shadow-md hover:shadow-lg active:scale-[0.98]"
                                 disabled={loading}
                             >
                                 {loading ? (

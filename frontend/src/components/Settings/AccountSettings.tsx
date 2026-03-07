@@ -420,7 +420,7 @@ const AccountSettings: React.FC = () => {
                 <Button
                     onClick={handleSaveProfile}
                     disabled={isSaving}
-                    className="bg-pink-600 hover:bg-pink-700 text-white rounded-2xl px-10 h-14 font-black text-base shadow-md shadow-pink-200/50 transition-all flex items-center gap-3 transform hover:scale-105"
+                    className="bg-pink-500 hover:bg-pink-600 text-white rounded-2xl px-10 h-14 font-black text-base shadow-md shadow-pink-200/50 transition-all flex items-center gap-3 transform hover:scale-105"
                 >
                     {isSaving ? <RefreshCw className="w-5 h-5 animate-spin" /> : <CheckCircle2 className="w-5 h-5" />}
                     {isSaving ? 'Saving...' : 'Save Changes'}

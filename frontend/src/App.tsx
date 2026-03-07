@@ -6,6 +6,7 @@ import SettingsLayout from './components/Settings/SettingsLayout'
 import Integrations from './components/Settings/Integrations'
 import VoiceTrainer from './components/Settings/VoiceTrainer'
 import AccountSettings from './components/Settings/AccountSettings'
+import Docs from './components/Docs'
 
 import { useUser } from './lib/UserContext'
 
@@ -54,6 +55,7 @@ function App() {
           <Route path="train" element={<VoiceTrainer />} />
           <Route path="account" element={<AccountSettings />} />
         </Route>
+        <Route path="/docs" element={<Docs onLogout={handleLogout} />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>

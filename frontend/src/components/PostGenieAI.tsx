@@ -11,6 +11,7 @@ import {
   Edit,
   Download,
   Sparkles,
+  FileText,
   Check,
   Clock,
   ChevronDown,
@@ -330,7 +331,7 @@ const PlatformCard: React.FC<PlatformCardProps> = ({
                 </div>
                 <Button
                   size="sm"
-                  className="w-full bg-pink-600 hover:bg-pink-700 text-white mt-1 disabled:opacity-50"
+                  className="w-full bg-pink-500 hover:bg-pink-600 text-white mt-1 disabled:opacity-50"
                   disabled={!scheduleDate || !scheduleTime || isPosting}
                   onClick={async (e) => {
                     e.stopPropagation();
@@ -456,7 +457,7 @@ const PlatformCard: React.FC<PlatformCardProps> = ({
             ) : (
               <Button
                 size="sm"
-                className="flex-1 bg-pink-600 hover:bg-pink-700 text-white"
+                className="flex-1 bg-pink-500 hover:bg-pink-600 text-white"
                 onClick={(e) => {
                   e.stopPropagation();
                   setIsEditing(false);
@@ -486,7 +487,7 @@ const PlatformCard: React.FC<PlatformCardProps> = ({
                 </div>
               ) : (
                 <Button
-                  className="w-full bg-pink-600 hover:bg-pink-700 text-white disabled:opacity-50"
+                  className="w-full bg-pink-500 hover:bg-pink-600 text-white disabled:opacity-50"
                   disabled={isPosting}
                   onClick={async (e) => {
                     e.stopPropagation();
@@ -716,11 +717,11 @@ const InputNode: React.FC<InputNodeProps> = ({
               onClick={() => setActiveTab("text")}
             >
               <span className="flex items-center justify-center gap-2">
-                <Sparkles className="w-4 h-4" />
+                <FileText className="w-4 h-4 ml-1" />
                 Text Post
               </span>
               {activeTab === "text" && (
-                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-pink-600" />
+                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-pink-500" />
               )}
             </button>
             <button
@@ -737,7 +738,7 @@ const InputNode: React.FC<InputNodeProps> = ({
                 Image
               </span>
               {activeTab === "image" && (
-                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-pink-600" />
+                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-pink-500" />
               )}
             </button>
           </div>
@@ -745,7 +746,8 @@ const InputNode: React.FC<InputNodeProps> = ({
           {/* Text Post Tab Content */}
           {activeTab === "text" && (
             <>
-              <div className="mb-4">
+              <div className="mb-4 flex items-center gap-2">
+                <Sparkles className="w-5 h-5 text-pink-600" />
                 <h3 className="text-2xl font-black text-gray-900">
                   AI Content Studio
                 </h3>
@@ -782,7 +784,7 @@ const InputNode: React.FC<InputNodeProps> = ({
 
               <div className="flex gap-3">
                 <Button
-                  className="w-full bg-pink-600 hover:bg-pink-700 text-white h-12"
+                  className="w-full bg-pink-500 hover:bg-pink-600 text-white h-12"
                   onClick={() => {
                     // Combine topic and description into prompt
                     const fullPrompt = description
