@@ -147,29 +147,34 @@ const PlatformCard: React.FC<PlatformCardProps> = ({
   }, [content]);
 
   const handleCopy = async (e: React.MouseEvent<HTMLButtonElement>) => {
+    // 1. Capture everything synchronously BEFORE any await
+    //    (React synthetic events are pooled — currentTarget becomes null after await)
     const textContent = localContent
       .replace(/<br\s*\/?>/gi, '\n')
       .replace(/<[^>]+>/g, '')
       .replace(/&nbsp;/g, ' ');
-    navigator.clipboard.writeText(textContent);
 
-    // Trigger confetti from button position
     const rect = e.currentTarget.getBoundingClientRect();
-    const x = (rect.left + rect.width / 2) / window.innerWidth;
-    const y = (rect.top + rect.height / 2) / window.innerHeight;
+    const originX = (rect.left + rect.width / 2) / window.innerWidth;
+    const originY = (rect.top + rect.height / 2) / window.innerHeight;
 
-    const { default: confetti } = await import('canvas-confetti');
-    confetti({
-      particleCount: 50,
-      spread: 60,
-      origin: { x, y },
-      colors: ['#ec4899', '#f472b6', '#fbcfe8', '#fce7f3'],
-    });
-
+    // 2. Copy to clipboard + update UI state immediately (synchronous)
+    navigator.clipboard.writeText(textContent);
     setIsCopied(true);
     setTimeout(() => setIsCopied(false), 2000);
-
     onCopy();
+
+    // 3. Fire confetti once from the button
+    const colors = ['#ec4899', '#f472b6', '#a855f7', '#fbcfe8', '#fce7f3', '#fbbf24', '#ffffff'];
+
+    try {
+      const { default: confetti } = await import('canvas-confetti');
+      confetti({ particleCount: 180, spread: 90, origin: { x: originX, y: originY }, colors, startVelocity: 50, gravity: 0.9 });
+    } catch (err) {
+      console.error('Confetti failed:', err);
+    }
+
+
   };
 
   const handleExport = () => {
