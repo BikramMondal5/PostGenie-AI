@@ -1,3 +1,5 @@
+import { uploadImage, getAssetUrl } from './s3';
+
 export interface GenerateImageOptions {
     prompt: string;
     apiUrl?: string;
@@ -47,8 +49,18 @@ export async function generateImage({
 
         const resp = await axios.get(url, { responseType: 'arraybuffer', headers, timeout: 60000 });
         const buffer = Buffer.from(resp.data);
-        const base64 = buffer.toString('base64');
         const mime = resp.headers && resp.headers['content-type'] ? resp.headers['content-type'] : 'image/png';
+
+        if (process.env.MEDIA_BUCKET) {
+            const key = await uploadImage(buffer, mime);
+            const s3Url = await getAssetUrl(key);
+            return {
+                success: true,
+                imageUrl: s3Url
+            };
+        }
+
+        const base64 = buffer.toString('base64');
         const dataUri = `data:${mime};base64,${base64}`;
 
         return {

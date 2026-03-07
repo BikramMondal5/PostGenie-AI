@@ -8,11 +8,69 @@ import * as iam from 'aws-cdk-lib/aws-iam';
 import * as lambdaNodejs from 'aws-cdk-lib/aws-lambda-nodejs';
 import * as events from 'aws-cdk-lib/aws-events';
 import * as targets from 'aws-cdk-lib/aws-events-targets';
+import * as s3 from 'aws-cdk-lib/aws-s3';
+import * as cloudfront from 'aws-cdk-lib/aws-cloudfront';
+import * as origins from 'aws-cdk-lib/aws-cloudfront-origins';
+import * as s3deploy from 'aws-cdk-lib/aws-s3-deployment';
 import * as path from 'path';
 
 export class PostGenieStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
     super(scope, id, props);
+
+    // Media Storage (AI Outputs)
+    const mediaBucket = new s3.Bucket(this, 'MediaBucket', {
+      versioned: false,
+      blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,
+      removalPolicy: cdk.RemovalPolicy.RETAIN,
+      encryption: s3.BucketEncryption.S3_MANAGED,
+      cors: [
+        {
+          allowedMethods: [s3.HttpMethods.GET, s3.HttpMethods.PUT, s3.HttpMethods.POST],
+          allowedOrigins: ['*'],
+          allowedHeaders: ['*'],
+        },
+      ],
+    });
+
+    // Frontend Hosting Bucket
+    const frontendBucket = new s3.Bucket(this, 'FrontendBucket', {
+      websiteIndexDocument: 'index.html',
+      websiteErrorDocument: 'index.html', // For SPA routing
+      blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,
+      removalPolicy: cdk.RemovalPolicy.DESTROY,
+      autoDeleteObjects: true,
+    });
+
+    // CloudFront Distribution for Frontend
+    const distribution = new cloudfront.Distribution(this, 'FrontendDistribution', {
+      defaultBehavior: {
+        origin: origins.S3BucketOrigin.withOriginAccessControl(frontendBucket),
+        viewerProtocolPolicy: cloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
+        cachePolicy: cloudfront.CachePolicy.CACHING_OPTIMIZED,
+      },
+      errorResponses: [
+        {
+          httpStatus: 404,
+          responseHttpStatus: 200,
+          responsePagePath: '/index.html',
+        },
+        {
+          httpStatus: 403,
+          responseHttpStatus: 200,
+          responsePagePath: '/index.html',
+        },
+      ],
+      defaultRootObject: 'index.html',
+    });
+
+    // Deploy Frontend to S3
+    new s3deploy.BucketDeployment(this, 'DeployFrontend', {
+      sources: [s3deploy.Source.asset(path.join(__dirname, '../../frontend/dist'))],
+      destinationBucket: frontendBucket,
+      distribution,
+      distributionPaths: ['/*'],
+    });
 
     // DynamoDB Tables
     const usersTable = new dynamodb.Table(this, 'UsersTable', {
@@ -123,6 +181,9 @@ export class PostGenieStack extends cdk.Stack {
 
     // Grant Secrets Manager permissions
     oauthSecrets.grantRead(lambdaRole);
+
+    // Grant S3 permissions
+    mediaBucket.grantReadWrite(lambdaRole);
 
     // Grant Bedrock permissions
     lambdaRole.addToPolicy(new iam.PolicyStatement({
@@ -262,6 +323,7 @@ export class PostGenieStack extends cdk.Stack {
       role: lambdaRole,
       environment: {
         JWT_SECRET: process.env.JWT_SECRET || 'change-me-in-production',
+        MEDIA_BUCKET: mediaBucket.bucketName,
       },
       timeout: cdk.Duration.seconds(30),
       bundling: {
@@ -354,6 +416,7 @@ export class PostGenieStack extends cdk.Stack {
         POSTS_TABLE: postsTable.tableName,
         JWT_SECRET: process.env.JWT_SECRET || 'change-me-in-production',
         ENCRYPTION_KEY: process.env.ENCRYPTION_KEY || 'postgenie-secret-key-32-char-!!!',
+        MEDIA_BUCKET: mediaBucket.bucketName,
       },
       timeout: cdk.Duration.seconds(30),
       bundling: { minify: true, sourceMap: true },
@@ -372,6 +435,7 @@ export class PostGenieStack extends cdk.Stack {
         CONNECTIONS_TABLE: connectionsTable.tableName,
         POSTS_TABLE: postsTable.tableName,
         ENCRYPTION_KEY: process.env.ENCRYPTION_KEY || 'postgenie-secret-key-32-char-!!!',
+        MEDIA_BUCKET: mediaBucket.bucketName,
       },
       timeout: cdk.Duration.seconds(60),
       bundling: { minify: true, sourceMap: true },
@@ -406,6 +470,15 @@ export class PostGenieStack extends cdk.Stack {
 
     new cdk.CfnOutput(this, 'PostsTableName', {
       value: postsTable.tableName,
+    });
+
+    new cdk.CfnOutput(this, 'FrontendUrl', {
+      value: `https://${distribution.distributionDomainName}`,
+      description: 'CloudFront Distribution Domain Name',
+    });
+
+    new cdk.CfnOutput(this, 'MediaBucketName', {
+      value: mediaBucket.bucketName,
     });
   }
 }

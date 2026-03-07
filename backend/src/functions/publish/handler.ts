@@ -228,15 +228,27 @@ async function refreshTwitterToken(userId: string, refreshToken: string) {
     return access_token;
 }
 
+async function getImageBuffer(imageUrl: string): Promise<{ buffer: Buffer, mime: string }> {
+    if (imageUrl.startsWith('data:image')) {
+        const mime = imageUrl.match(/data:([^;]+);base64/)?.[1] || 'image/png';
+        const base64Data = imageUrl.replace(/^data:image\/\w+;base64,/, '');
+        return { buffer: Buffer.from(base64Data, 'base64'), mime };
+    } else {
+        const response = await axios.get(imageUrl, { responseType: 'arraybuffer' });
+        const mime = response.headers['content-type'] || 'image/png';
+        return { buffer: Buffer.from(response.data), mime };
+    }
+}
+
 async function publishToTwitter(accessToken: string, text: string, imageUrl?: string) {
     try {
         let mediaIds: string[] = [];
 
-        if (imageUrl && imageUrl.startsWith('data:image')) {
-            console.log('Twitter: Uploading image...');
+        if (imageUrl) {
+            console.log('Twitter: Processing image...');
             try {
-                // Extract base64 content
-                const base64Data = imageUrl.replace(/^data:image\/\w+;base64,/, '');
+                const { buffer } = await getImageBuffer(imageUrl);
+                const base64Data = buffer.toString('base64');
 
                 // Twitter v1.1 Media Upload
                 const uploadRes = await axios.post(
@@ -298,9 +310,11 @@ async function publishToLinkedIn(accessToken: string, text: string, imageUrl?: s
 
         let imageUrn: string | null = null;
 
-        if (imageUrl && imageUrl.startsWith('data:image')) {
+        if (imageUrl) {
             console.log('LinkedIn: Initializing image upload...');
             try {
+                const { buffer } = await getImageBuffer(imageUrl);
+
                 // Initialize upload via v2/images API (newer, works with v2/posts)
                 const registerRes = await axios.post(
                     'https://api.linkedin.com/v2/images?action=initializeUpload',
@@ -321,9 +335,6 @@ async function publishToLinkedIn(accessToken: string, text: string, imageUrl?: s
                 imageUrn = registerRes.data.value.image;
 
                 console.log('LinkedIn: Uploading image to pre-signed URL...');
-                // Convert base64 to binary
-                const base64Data = imageUrl.replace(/^data:image\/\w+;base64,/, '');
-                const buffer = Buffer.from(base64Data, 'base64');
 
                 // Important: NO Authorization header for the pre-signed URL
                 await axios.put(uploadUrl, buffer, {
