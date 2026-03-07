@@ -1,22 +1,34 @@
-import { PutCommand, GetCommand, QueryCommand } from '@aws-sdk/lib-dynamodb';
+import { PutCommand, GetCommand, QueryCommand, DeleteCommand } from '@aws-sdk/lib-dynamodb';
 import { dynamoDb, TABLES } from '../config/dynamodb';
 import { VoiceProfile } from '../types';
 import { v4 as uuidv4 } from 'uuid';
 
 export class VoiceProfileRepository {
     /**
-     * Create or update a voice profile
+     * Create a new voice profile
      */
-    async upsertProfile(profile: Omit<VoiceProfile, 'profileId' | 'createdAt' | 'updatedAt'>): Promise<VoiceProfile> {
+    async createProfile(profile: Omit<VoiceProfile, 'profileId' | 'createdAt' | 'updatedAt'>): Promise<VoiceProfile> {
         const now = new Date().toISOString();
 
-        // Check if profile exists for user/platform to keep the same profileId
-        const existing = await this.getProfileByUserPlatform(profile.userId, profile.platform);
+        // If newly created profile is active, deactivate others for same platform
+        if (profile.isActive) {
+            const allProfiles = await this.getProfilesByUserPlatform(profile.userId, profile.platform);
+            for (const p of allProfiles) {
+                if (p.isActive) {
+                    await dynamoDb.send(
+                        new PutCommand({
+                            TableName: TABLES.VOICE_PROFILES,
+                            Item: { ...p, isActive: false, updatedAt: now }
+                        })
+                    );
+                }
+            }
+        }
 
         const fullProfile: VoiceProfile = {
             ...profile,
-            profileId: existing ? existing.profileId : uuidv4(),
-            createdAt: existing ? existing.createdAt : now,
+            profileId: uuidv4(),
+            createdAt: now,
             updatedAt: now,
         };
 
@@ -31,9 +43,61 @@ export class VoiceProfileRepository {
     }
 
     /**
-     * Get specific profile by user and platform
+     * Toggle the active status of a profile and deactivate others for the same platform
      */
-    async getProfileByUserPlatform(userId: string, platform: string): Promise<VoiceProfile | null> {
+    async toggleActiveStatus(userId: string, profileId: string, platform: string, isActive: boolean): Promise<void> {
+        // Find existing profile
+        const result = await dynamoDb.send(
+            new GetCommand({
+                TableName: TABLES.VOICE_PROFILES,
+                Key: { profileId }
+            })
+        );
+
+        if (!result.Item) throw new Error("Profile not found");
+
+        const profile = result.Item as VoiceProfile;
+
+        // If we are activating this one, we should deactivate others for the same platform
+        if (isActive) {
+            const allProfiles = await this.getProfilesByUserPlatform(userId, platform);
+            for (const p of allProfiles) {
+                if (p.profileId !== profileId && p.isActive) {
+                    await dynamoDb.send(
+                        new PutCommand({
+                            TableName: TABLES.VOICE_PROFILES,
+                            Item: { ...p, isActive: false, updatedAt: new Date().toISOString() }
+                        })
+                    );
+                }
+            }
+        }
+
+        // Update the target profile
+        await dynamoDb.send(
+            new PutCommand({
+                TableName: TABLES.VOICE_PROFILES,
+                Item: { ...profile, isActive, updatedAt: new Date().toISOString() }
+            })
+        );
+    }
+
+    /**
+     * Delete a profile
+     */
+    async deleteProfile(profileId: string): Promise<void> {
+        await dynamoDb.send(
+            new DeleteCommand({
+                TableName: TABLES.VOICE_PROFILES,
+                Key: { profileId },
+            })
+        );
+    }
+
+    /**
+     * Get all profiles by user and platform
+     */
+    async getProfilesByUserPlatform(userId: string, platform: string): Promise<VoiceProfile[]> {
         const result = await dynamoDb.send(
             new QueryCommand({
                 TableName: TABLES.VOICE_PROFILES,
@@ -46,8 +110,7 @@ export class VoiceProfileRepository {
             })
         );
 
-        if (!result.Items || result.Items.length === 0) return null;
-        return result.Items[0] as VoiceProfile;
+        return (result.Items || []) as VoiceProfile[];
     }
 
     /**
@@ -57,7 +120,7 @@ export class VoiceProfileRepository {
         const result = await dynamoDb.send(
             new QueryCommand({
                 TableName: TABLES.VOICE_PROFILES,
-                IndexName: 'UserPlatformIndex', // Though it's called UserPlatformIndex, partition key is userId
+                IndexName: 'UserPlatformIndex',
                 KeyConditionExpression: 'userId = :userId',
                 ExpressionAttributeValues: {
                     ':userId': userId,

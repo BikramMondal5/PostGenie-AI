@@ -294,6 +294,27 @@ export class PostGenieStack extends cdk.Stack {
     const profilesResource = voiceResource.addResource('profiles');
     profilesResource.addMethod('GET', new apigateway.LambdaIntegration(listVoiceProfilesFunction));
 
+    // Voice - Manage
+    const manageVoiceProfileFunction = new lambdaNodejs.NodejsFunction(this, 'ManageVoiceProfileFunction', {
+      runtime: lambda.Runtime.NODEJS_18_X,
+      entry: path.join(__dirname, '../../backend/src/functions/voice/manage.ts'),
+      handler: 'handler',
+      role: lambdaRole,
+      environment: {
+        VOICE_PROFILES_TABLE: voiceProfilesTable.tableName,
+        JWT_SECRET: process.env.JWT_SECRET || 'change-me-in-production',
+      },
+      timeout: cdk.Duration.seconds(30),
+      bundling: {
+        minify: true,
+        sourceMap: true,
+      },
+    });
+
+    const profileIdResource = profilesResource.addResource('{profileId}');
+    profileIdResource.addMethod('PATCH', new apigateway.LambdaIntegration(manageVoiceProfileFunction));
+    profileIdResource.addMethod('DELETE', new apigateway.LambdaIntegration(manageVoiceProfileFunction));
+
     // Content Generation
     const generateContentFunction = new lambdaNodejs.NodejsFunction(this, 'GenerateContentFunction', {
       runtime: lambda.Runtime.NODEJS_18_X,

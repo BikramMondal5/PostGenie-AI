@@ -57,27 +57,34 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
 
         if (systemInstruction) {
             console.log(`Setting direct system instruction for user ${userId} on ${platform}`);
-            // Get existing or create basic profile
-            const existing = await profileRepo.getProfileByUserPlatform(userId, platform);
+            // Get existing profiles to inherit styles if any
+            const existingProfiles = await profileRepo.getProfilesByUserPlatform(userId, platform);
+            const primary = existingProfiles.length > 0 ? existingProfiles[0] : null;
+
             profileToSave = {
                 userId,
                 platform,
                 systemInstruction,
-                tone: existing?.tone || 'casual',
-                frequentWords: existing?.frequentWords || [],
-                vocabularyComplexity: existing?.vocabularyComplexity || 0.5,
-                avgSentenceLength: existing?.avgSentenceLength || 15,
-                commonPhrases: existing?.commonPhrases || [],
-                emotionalTone: existing?.emotionalTone || ['neutral'],
-                hashtagUsage: existing?.hashtagUsage || 0.2,
-                emojiUsage: existing?.emojiUsage || 0.2
+                isActive: true,
+                tone: primary?.tone || 'casual',
+                frequentWords: primary?.frequentWords || [],
+                vocabularyComplexity: primary?.vocabularyComplexity || 0.5,
+                avgSentenceLength: primary?.avgSentenceLength || 15,
+                commonPhrases: primary?.commonPhrases || [],
+                emotionalTone: primary?.emotionalTone || ['neutral'],
+                hashtagUsage: primary?.hashtagUsage || 0.2,
+                emojiUsage: primary?.emojiUsage || 0.2
             };
         } else {
             console.log(`Analyzing voice for user ${userId} on ${platform}`);
-            profileToSave = await analysisService.analyzeVoice(userId, platform, content);
+            const analyzed = await analysisService.analyzeVoice(userId, platform, content);
+            profileToSave = {
+                ...analyzed,
+                isActive: true
+            };
         }
 
-        const savedProfile = await profileRepo.upsertProfile(profileToSave);
+        const savedProfile = await profileRepo.createProfile(profileToSave);
 
         return {
             statusCode: 200,

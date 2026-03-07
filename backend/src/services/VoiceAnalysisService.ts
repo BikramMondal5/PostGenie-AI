@@ -9,7 +9,7 @@ export class VoiceAnalysisService {
     /**
      * Analyzes text content to extract writing style and tone using Amazon Bedrock
      */
-    async analyzeVoice(userId: string, platform: string, content: string): Promise<Omit<VoiceProfile, "profileId" | "createdAt" | "updatedAt">> {
+    async analyzeVoice(userId: string, platform: string, content: string): Promise<Omit<VoiceProfile, "profileId" | "createdAt" | "updatedAt" | "isActive">> {
         const prompt = `
       Analyze the following social media posts and extract a detailed writing style profile.
       Return ONLY a JSON object with the following structure:

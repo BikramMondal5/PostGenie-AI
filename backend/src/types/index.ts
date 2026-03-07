@@ -32,6 +32,7 @@ export interface VoiceProfile {
   hashtagUsage: number;
   emojiUsage: number;
   systemInstruction?: string;
+  isActive: boolean;
   createdAt: string;
   updatedAt: string;
 }

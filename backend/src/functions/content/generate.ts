@@ -49,7 +49,7 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
     try {
         // Fetch user voice profiles
         const userProfiles = await profileRepo.getProfilesByUser(userId);
-        const voiceConfigs = userProfiles.reduce((acc: any, p) => {
+        const voiceConfigs = userProfiles.filter(p => p.isActive).reduce((acc: any, p) => {
             acc[p.platform] = p.systemInstruction;
             return acc;
         }, {});
