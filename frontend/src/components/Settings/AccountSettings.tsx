@@ -59,14 +59,14 @@ interface UserProfile {
 const Section: React.FC<{ icon: React.ElementType; title: string; description: string; children: React.ReactNode }> = ({
     icon: Icon, title, description, children
 }) => (
-    <div className="bg-white border border-gray-100 rounded-[2.5rem] p-8 shadow-sm hover:shadow-md transition-shadow duration-300">
-        <div className="flex items-start gap-4 mb-8">
-            <div className="p-3 bg-pink-50 rounded-2xl">
-                <Icon className="w-5 h-5 text-pink-600" />
+    <div className="bg-white border border-gray-100 rounded-[2rem] sm:rounded-[2.5rem] p-4 sm:p-6 md:p-8 shadow-sm hover:shadow-md transition-shadow duration-300">
+        <div className="flex items-start gap-3 sm:gap-4 mb-6 sm:mb-8">
+            <div className="p-2.5 sm:p-3 bg-pink-50 rounded-2xl">
+                <Icon className="w-4 h-4 sm:w-5 sm:h-5 text-pink-600" />
             </div>
             <div>
-                <h3 className="text-lg font-black text-gray-900">{title}</h3>
-                <p className="text-sm text-gray-400 font-medium mt-0.5">{description}</p>
+                <h3 className="text-base sm:text-lg font-black text-gray-900">{title}</h3>
+                <p className="text-xs sm:text-sm text-gray-400 font-medium mt-0.5">{description}</p>
             </div>
         </div>
         {children}
@@ -235,30 +235,30 @@ const AccountSettings: React.FC = () => {
         : profile?.email?.[0]?.toUpperCase() || '?';
 
     return (
-        <div className="max-w-3xl space-y-10">
+        <div className="max-w-3xl space-y-6 sm:space-y-10">
             {/* Header */}
             <div>
                 <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-pink-50 text-pink-600 text-[10px] font-bold uppercase tracking-widest mb-3">
                     <Sparkles className="w-3 h-3" />
                     Account Settings
                 </div>
-                <h2 className="text-4xl font-black text-gray-900 tracking-tight">Your Profile</h2>
-                <p className="text-gray-400 mt-1 text-lg">Manage your identity, security, and preferences.</p>
+                <h2 className="text-2xl sm:text-3xl md:text-4xl font-black text-gray-900 tracking-tight">Your Profile</h2>
+                <p className="text-gray-400 mt-1 text-sm sm:text-base md:text-lg">Manage your identity, security, and preferences.</p>
             </div>
 
             {/* ── Avatar + Name ────────────────────────────────────────────── */}
             <Section icon={User} title="Profile Identity" description="Your public name, photo and short bio">
                 {/* Avatar row */}
-                <div className="flex items-center gap-8 mb-8">
+                <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4 sm:gap-8 mb-6 sm:mb-8">
                     <div className="relative group">
                         {previewAvatar ? (
                             <img
                                 src={previewAvatar}
                                 alt="Avatar"
-                                className="w-24 h-24 rounded-[1.5rem] object-cover border-4 border-white shadow-xl ring-2 ring-pink-100"
+                                className="w-20 h-20 sm:w-24 sm:h-24 rounded-[1.5rem] object-cover border-4 border-white shadow-xl ring-2 ring-pink-100"
                             />
                         ) : (
-                            <div className="w-24 h-24 rounded-[1.5rem] bg-gradient-to-br from-pink-400 to-purple-500 flex items-center justify-center text-white text-3xl font-black shadow-xl">
+                            <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-[1.5rem] bg-gradient-to-br from-pink-400 to-purple-500 flex items-center justify-center text-white text-2xl sm:text-3xl font-black shadow-xl">
                                 {initials}
                             </div>
                         )}
@@ -266,14 +266,14 @@ const AccountSettings: React.FC = () => {
                             onClick={() => setIsAvatarPickerOpen(!isAvatarPickerOpen)}
                             className="absolute inset-0 rounded-[1.5rem] bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 cursor-pointer"
                         >
-                            <Camera className="w-6 h-6 text-white" />
+                            <Camera className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
                         </button>
                     </div>
 
-                    <div className="space-y-2">
-                        <p className="font-bold text-gray-800 text-lg">{displayName || profile?.email}</p>
-                        <p className="text-sm text-gray-400">{profile?.email}</p>
-                        <div className="flex gap-2">
+                    <div className="space-y-2 text-center sm:text-left">
+                        <p className="font-bold text-gray-800 text-base sm:text-lg">{displayName || profile?.email}</p>
+                        <p className="text-xs sm:text-sm text-gray-400">{profile?.email}</p>
+                        <div className="flex flex-wrap gap-2 justify-center sm:justify-start">
                             <Button
                                 size="sm"
                                 variant="outline"
@@ -299,9 +299,9 @@ const AccountSettings: React.FC = () => {
 
                 {/* Avatar picker panel */}
                 {isAvatarPickerOpen && (
-                    <div className="mb-8 p-6 bg-gray-50 rounded-[2rem] border border-gray-100 space-y-4">
+                    <div className="mb-6 sm:mb-8 p-4 sm:p-6 bg-gray-50 rounded-[2rem] border border-gray-100 space-y-4">
                         <p className="text-xs font-black text-gray-500 uppercase tracking-widest">Choose a preset avatar</p>
-                        <div className="grid grid-cols-6 gap-3">
+                        <div className="grid grid-cols-4 sm:grid-cols-6 gap-2 sm:gap-3">
                             {PRESET_AVATARS.map((av) => (
                                 <button
                                     key={av.id}
@@ -315,13 +315,13 @@ const AccountSettings: React.FC = () => {
                                 </button>
                             ))}
                         </div>
-                        <div className="flex items-center gap-3 pt-2 border-t border-gray-200">
+                        <div className="flex flex-col sm:flex-row items-center gap-3 pt-2 border-t border-gray-200">
                             <p className="text-xs font-bold text-gray-400">Or upload your own</p>
                             <Button
                                 size="sm"
                                 variant="outline"
                                 onClick={() => fileInputRef.current?.click()}
-                                className="rounded-xl text-xs font-bold border-dashed border-gray-300 text-gray-500 hover:text-pink-600 hover:border-pink-200"
+                                className="rounded-xl text-xs font-bold border-dashed border-gray-300 text-gray-500 hover:text-pink-600 hover:border-pink-200 w-full sm:w-auto"
                             >
                                 <Camera className="w-3.5 h-3.5 mr-2" />
                                 Upload Photo
@@ -383,7 +383,7 @@ const AccountSettings: React.FC = () => {
 
             {/* ── Account info ──────────────────────────────────────────────── */}
             <Section icon={FileText} title="Account Info" description="Your account details and membership">
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                     {[
                         { label: 'Email Address', key: 'email', value: profile?.email || '—' },
                         { label: 'Member Since', key: 'memberSince', value: profile?.createdAt ? new Date(profile.createdAt).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' }) : '—' },
@@ -395,10 +395,10 @@ const AccountSettings: React.FC = () => {
                             isSensitive: true
                         },
                     ].map(({ label, value, isSensitive, key }) => (
-                        <div key={key} className="bg-gray-50 rounded-2xl px-5 py-4">
+                        <div key={key} className="bg-gray-50 rounded-2xl px-4 sm:px-5 py-3 sm:py-4">
                             <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">{label}</p>
                             <div className="flex items-center justify-between gap-2 overflow-hidden">
-                                <p className="text-sm font-bold text-gray-800 truncate">
+                                <p className="text-xs sm:text-sm font-bold text-gray-800 truncate">
                                     {isSensitive ? (showAccountId ? value : '••••••••' + value.slice(-4)) : value}
                                 </p>
                                 {isSensitive && (
@@ -416,13 +416,13 @@ const AccountSettings: React.FC = () => {
             </Section>
 
             {/* ── Save profile button ───────────────────────────────────────── */}
-            <div className="flex justify-end">
+            <div className="flex justify-center sm:justify-end">
                 <Button
                     onClick={handleSaveProfile}
                     disabled={isSaving}
-                    className="bg-pink-500 hover:bg-pink-600 text-white rounded-2xl px-10 h-14 font-black text-base shadow-md shadow-pink-200/50 transition-all flex items-center gap-3 transform hover:scale-105"
+                    className="bg-pink-500 hover:bg-pink-600 text-white rounded-2xl px-8 sm:px-10 h-12 sm:h-14 font-black text-sm sm:text-base shadow-md shadow-pink-200/50 transition-all flex items-center gap-3 transform hover:scale-105 w-full sm:w-auto"
                 >
-                    {isSaving ? <RefreshCw className="w-5 h-5 animate-spin" /> : <CheckCircle2 className="w-5 h-5" />}
+                    {isSaving ? <RefreshCw className="w-4 h-4 sm:w-5 sm:h-5 animate-spin" /> : <CheckCircle2 className="w-4 h-4 sm:w-5 sm:h-5" />}
                     {isSaving ? 'Saving...' : 'Save Changes'}
                 </Button>
             </div>
@@ -538,20 +538,20 @@ const AccountSettings: React.FC = () => {
             </div>
 
             {/* ── Danger Zone ────────────────────────────────────────────────── */}
-            <div className="bg-red-50/30 border border-red-100 rounded-[2.5rem] p-8 mt-12">
-                <div className="flex items-start gap-4 mb-8">
-                    <div className="p-3 bg-red-100 rounded-2xl">
-                        <AlertTriangle className="w-5 h-5 text-red-600" />
+            <div className="bg-red-50/30 border border-red-100 rounded-[2.5rem] p-4 sm:p-8 mt-8 sm:mt-12">
+                <div className="flex items-start gap-3 sm:gap-4 mb-6 sm:mb-8">
+                    <div className="p-2.5 sm:p-3 bg-red-100 rounded-2xl">
+                        <AlertTriangle className="w-4 h-4 sm:w-5 sm:h-5 text-red-600" />
                     </div>
                     <div>
-                        <h3 className="text-lg font-black text-red-900">Danger Zone</h3>
-                        <p className="text-sm text-red-500/70 font-medium mt-0.5">Irreversible actions for your account</p>
+                        <h3 className="text-base sm:text-lg font-black text-red-900">Danger Zone</h3>
+                        <p className="text-xs sm:text-sm text-red-500/70 font-medium mt-0.5">Irreversible actions for your account</p>
                     </div>
                 </div>
 
-                <div className="flex items-center justify-between gap-6 p-6 bg-white border border-red-100 rounded-3xl">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 sm:gap-6 p-4 sm:p-6 bg-white border border-red-100 rounded-2xl sm:rounded-3xl">
                     <div>
-                        <p className="font-bold text-gray-900">Delete Account</p>
+                        <p className="font-bold text-gray-900 text-sm sm:text-base">Delete Account</p>
                         <p className="text-xs text-gray-500 mt-1">Once deleted, all your data, posts, and AI profiles will be gone forever.</p>
                     </div>
                     <Button
@@ -564,7 +564,7 @@ const AccountSettings: React.FC = () => {
                                 }).catch(e => showModal('Error', e.message, 'error'));
                             }
                         }}
-                        className="rounded-xl px-6 h-11 font-bold whitespace-nowrap"
+                        className="rounded-xl px-4 sm:px-6 h-10 sm:h-11 font-bold whitespace-nowrap text-xs sm:text-sm w-full sm:w-auto"
                     >
                         Delete Forever
                     </Button>

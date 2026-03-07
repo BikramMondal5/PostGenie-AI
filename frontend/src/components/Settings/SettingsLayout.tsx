@@ -39,8 +39,8 @@ const SettingsLayout: React.FC<SettingsLayoutProps> = ({ onLogout }) => {
         <div className="min-h-screen bg-gray-50 flex flex-col">
             <Navbar onLogout={onLogout} />
 
-            <div className="flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8">
-                <div className="flex flex-col lg:flex-row gap-8">
+            <div className="flex-1 max-w-7xl mx-auto w-full px-3 sm:px-4 md:px-6 lg:px-8 py-4 sm:py-8">
+                <div className="flex flex-col lg:flex-row gap-4 sm:gap-8">
                     {/* Sidebar */}
                     <aside className="w-full lg:w-64 shrink-0 lg:sticky lg:top-24 h-fit">
                         <nav className="space-y-1">
@@ -72,7 +72,7 @@ const SettingsLayout: React.FC<SettingsLayoutProps> = ({ onLogout }) => {
 
                     {/* Main Content */}
                     <main className="flex-1 bg-white rounded-2xl shadow-sm border border-gray-100 min-h-[600px] overflow-hidden">
-                        <div className="p-8">
+                        <div className="p-4 sm:p-6 md:p-8">
                             <Outlet />
                         </div>
                     </main>

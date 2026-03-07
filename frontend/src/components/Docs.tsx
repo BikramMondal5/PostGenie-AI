@@ -521,7 +521,7 @@ Common issues and solutions.
 
             <div className="flex min-h-[calc(100vh-73px)]">
                 {/* Sidebar */}
-                <div className="w-80 bg-white border-r border-gray-200 overflow-y-auto h-[calc(100vh-73px)] sticky top-[73px] hidden md:block">
+                <div className="w-64 lg:w-80 bg-white border-r border-gray-200 overflow-y-auto h-[calc(100vh-73px)] sticky top-[73px] hidden md:block">
                     <div className="p-6">
                         <div className="mb-6">
                             <div className="relative">
@@ -619,7 +619,7 @@ Common issues and solutions.
 
                 {/* Main Content */}
                 <div className="flex-1 bg-white">
-                    <div className="max-w-4xl mx-auto p-12 lg:p-20">
+                    <div className="max-w-4xl mx-auto p-4 sm:p-8 md:p-12 lg:p-20">
                         <div className="markdown-content">
                             <ReactMarkdown components={markdownComponents}>
                                 {getContent(activeSection)}

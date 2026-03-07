@@ -1,0 +1,13 @@
+{
+  "PostGenieStack": {
+    "MediaBucketName": "postgeniestack-mediabucketbcbb02ba-gi4bzswuyw2o",
+    "ApiUrl": "https://cdrsrbtg83.execute-api.us-east-1.amazonaws.com/prod/",
+    "VoiceProfilesTableName": "PostGenie-VoiceProfiles",
+    "UsersTableName": "PostGenie-Users",
+    "PostsTableName": "PostGenie-Posts",
+    "PostGenieApiEndpoint6D297202": "https://cdrsrbtg83.execute-api.us-east-1.amazonaws.com/prod/",
+    "ConnectionsTableName": "PostGenie-Connections",
+    "FrontendUrl": "https://d29mlkt4ncinj4.cloudfront.net",
+    "ModelsTableName": "PostGenie-Models"
+  }
+}

@@ -273,7 +273,7 @@ const PlatformCard: React.FC<PlatformCardProps> = ({
       <Card
         className={cn(
           "shadow-lg transition-all duration-300 bg-white border-gray-200",
-          isEditing ? "w-[500px]" : "w-80",
+          isEditing ? "w-[90vw] sm:w-[600px]" : "w-[85vw] sm:w-96",
           !isEditing && "hover:shadow-xl"
         )}
         onMouseDown={handleMouseDown}
@@ -399,13 +399,13 @@ const PlatformCard: React.FC<PlatformCardProps> = ({
             </div>
           )}
 
-          <div className="flex gap-2 pt-2 border-t mt-2">
+          <div className="flex flex-wrap gap-2 pt-2 border-t mt-2">
             {!isEditing ? (
               <>
                 <Button
                   size="sm"
                   variant="outline"
-                  className={isCopied ? "flex-1 bg-green-50 border-green-500 text-green-600" : "flex-1"}
+                  className={isCopied ? "flex-1 min-w-[100px] bg-green-50 border-green-500 text-green-600" : "flex-1 min-w-[100px]"}
                   onClick={(e) => {
                     e.stopPropagation();
                     handleCopy(e);
@@ -426,6 +426,7 @@ const PlatformCard: React.FC<PlatformCardProps> = ({
                 <Button
                   size="sm"
                   variant="outline"
+                  className="hidden sm:flex"
                   onClick={(e) => {
                     e.stopPropagation();
                     onRegenerate();
@@ -447,6 +448,7 @@ const PlatformCard: React.FC<PlatformCardProps> = ({
                 <Button
                   size="sm"
                   variant="outline"
+                  className="hidden sm:flex"
                   onClick={(e) => {
                     e.stopPropagation();
                     handleExport();
@@ -704,24 +706,25 @@ const InputNode: React.FC<InputNodeProps> = ({
       }}
     >
       <Card
-        className="w-[580px] shadow-2xl bg-white border-gray-200"
+        className="w-[95vw] sm:w-[580px] max-w-[580px] shadow-2xl bg-white border-gray-200"
         onMouseDown={handleMouseDownNode}
       >
-        <CardContent className="p-6 space-y-4 min-h-[420px]">
+        <CardContent className="p-4 sm:p-6 space-y-4 min-h-[420px]">
           {/* Tab Headers */}
           <div className="flex border-b border-gray-200 mb-4">
             <button
               className={cn(
-                "flex-1 pb-3 text-sm font-medium transition-colors relative",
+                "flex-1 pb-3 text-xs sm:text-sm font-medium transition-colors relative",
                 activeTab === "text"
                   ? "text-pink-600"
                   : "text-gray-500 hover:text-gray-700"
               )}
               onClick={() => setActiveTab("text")}
             >
-              <span className="flex items-center justify-center gap-2">
-                <FileText className="w-4 h-4 ml-1" />
-                Text Post
+              <span className="flex items-center justify-center gap-1 sm:gap-2">
+                <FileText className="w-3 h-3 sm:w-4 sm:h-4" />
+                <span className="hidden xs:inline">Text Post</span>
+                <span className="xs:hidden">Text</span>
               </span>
               {activeTab === "text" && (
                 <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-pink-500" />
@@ -729,15 +732,15 @@ const InputNode: React.FC<InputNodeProps> = ({
             </button>
             <button
               className={cn(
-                "flex-1 pb-3 text-sm font-medium transition-colors relative",
+                "flex-1 pb-3 text-xs sm:text-sm font-medium transition-colors relative",
                 activeTab === "image"
                   ? "text-pink-600"
                   : "text-gray-500 hover:text-gray-700"
               )}
               onClick={() => setActiveTab("image")}
             >
-              <span className="flex items-center justify-center gap-2">
-                <ImageIcon className="w-4 h-4" />
+              <span className="flex items-center justify-center gap-1 sm:gap-2">
+                <ImageIcon className="w-3 h-3 sm:w-4 sm:h-4" />
                 Image
               </span>
               {activeTab === "image" && (
@@ -750,36 +753,36 @@ const InputNode: React.FC<InputNodeProps> = ({
           {activeTab === "text" && (
             <>
               <div className="mb-4 flex items-center gap-2">
-                <Sparkles className="w-5 h-5 text-pink-600" />
-                <h3 className="text-2xl font-black text-gray-900">
+                <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 text-pink-600" />
+                <h3 className="text-lg sm:text-2xl font-black text-gray-900">
                   AI Content Studio
                 </h3>
               </div>
 
               <div className="space-y-3">
                 <div>
-                  <label className="text-sm font-medium text-gray-700 mb-1.5 block">
+                  <label className="text-xs sm:text-sm font-medium text-gray-700 mb-1.5 block">
                     Topic <span className="text-red-500">*</span>
                   </label>
                   <Input
-                    placeholder="e.g., Product Launch, Event Announcement, Achievement"
+                    placeholder="e.g., Product Launch, Event Announcement"
                     value={topic}
                     onChange={(e) => setTopic(e.target.value)}
-                    className="text-gray-900 placeholder:text-gray-400 border-pink-300 focus:border-pink-500 focus:ring-pink-200"
+                    className="text-sm sm:text-base text-gray-900 placeholder:text-gray-400 border-pink-300 focus:border-pink-500 focus:ring-pink-200"
                     disabled={isGenerating}
                     required
                   />
                 </div>
 
                 <div>
-                  <label className="text-sm font-medium text-gray-700 mb-1.5 block">
+                  <label className="text-xs sm:text-sm font-medium text-gray-700 mb-1.5 block">
                     Description
                   </label>
                   <Textarea
                     placeholder="Provide details about your topic. The more context you give, the better the AI-generated posts will be."
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
-                    className="min-h-[150px] resize-none text-gray-900 placeholder:text-gray-400 text-base border-pink-300 focus:border-pink-500 focus:ring-pink-200"
+                    className="min-h-[120px] sm:min-h-[150px] resize-none text-sm sm:text-base text-gray-900 placeholder:text-gray-400 border-pink-300 focus:border-pink-500 focus:ring-pink-200"
                     disabled={isGenerating}
                   />
                 </div>
@@ -787,7 +790,7 @@ const InputNode: React.FC<InputNodeProps> = ({
 
               <div className="flex gap-3">
                 <Button
-                  className="w-full bg-pink-500 hover:bg-pink-600 text-white h-12"
+                  className="w-full bg-pink-500 hover:bg-pink-600 text-white h-10 sm:h-12 text-sm sm:text-base"
                   onClick={() => {
                     // Combine topic and description into prompt
                     const fullPrompt = description
@@ -808,12 +811,13 @@ const InputNode: React.FC<InputNodeProps> = ({
                 >
                   {isGenerating ? (
                     <>
-                      <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-                      Generating...
+                      <RefreshCw className="w-3 h-3 sm:w-4 sm:h-4 mr-2 animate-spin" />
+                      <span className="hidden xs:inline">Generating...</span>
+                      <span className="xs:hidden">...</span>
                     </>
                   ) : (
                     <>
-                      <Sparkles className="w-4 h-4 mr-2" />
+                      <Sparkles className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
                       Generate Posts
                     </>
                   )}
@@ -878,185 +882,185 @@ const InputNode: React.FC<InputNodeProps> = ({
                   Object.entries(platformConfig)
                     .filter(([platform]) => connectedPlatforms.includes(platform))
                     .map(([platform, config]) => {
-                  const platformKey = platform as keyof typeof selectedPlatforms;
-                  const Icon = config.icon;
-                  const isExpanded = expandedPlatform === platform;
-                  const hasConfirmedImage = confirmedImages[platformKey];
+                      const platformKey = platform as keyof typeof selectedPlatforms;
+                      const Icon = config.icon;
+                      const isExpanded = expandedPlatform === platform;
+                      const hasConfirmedImage = confirmedImages[platformKey];
 
-                  return (
-                    <div key={platform} className="border border-gray-200 rounded-lg p-3">
-                      {/* Platform Header */}
-                      <div className="flex items-center justify-between">
-                        <label className="flex items-center gap-2 cursor-pointer flex-1">
-                          <input
-                            type="checkbox"
-                            checked={selectedPlatforms[platformKey]}
-                            onChange={() => handlePlatformToggle(platformKey)}
-                            className="w-4 h-4 text-pink-600 border-gray-300 rounded focus:ring-pink-500"
-                          />
-                          <Icon className={cn("w-5 h-5", config.color)} />
-                          <span className="text-sm font-medium text-gray-700">
-                            {config.name}
-                          </span>
-                          {hasConfirmedImage && (
-                            <Check className="w-4 h-4 text-green-600 ml-auto" />
-                          )}
-                        </label>
-                        {selectedPlatforms[platformKey] && (
-                          <button
-                            onClick={() => setExpandedPlatform(isExpanded ? null : platform)}
-                            className="ml-2 text-gray-400 hover:text-gray-600"
-                          >
-                            {isExpanded ? (
-                              <ChevronUp className="w-4 h-4" />
-                            ) : (
-                              <ChevronDown className="w-4 h-4" />
+                      return (
+                        <div key={platform} className="border border-gray-200 rounded-lg p-3">
+                          {/* Platform Header */}
+                          <div className="flex items-center justify-between">
+                            <label className="flex items-center gap-2 cursor-pointer flex-1">
+                              <input
+                                type="checkbox"
+                                checked={selectedPlatforms[platformKey]}
+                                onChange={() => handlePlatformToggle(platformKey)}
+                                className="w-4 h-4 text-pink-600 border-gray-300 rounded focus:ring-pink-500"
+                              />
+                              <Icon className={cn("w-5 h-5", config.color)} />
+                              <span className="text-sm font-medium text-gray-700">
+                                {config.name}
+                              </span>
+                              {hasConfirmedImage && (
+                                <Check className="w-4 h-4 text-green-600 ml-auto" />
+                              )}
+                            </label>
+                            {selectedPlatforms[platformKey] && (
+                              <button
+                                onClick={() => setExpandedPlatform(isExpanded ? null : platform)}
+                                className="ml-2 text-gray-400 hover:text-gray-600"
+                              >
+                                {isExpanded ? (
+                                  <ChevronUp className="w-4 h-4" />
+                                ) : (
+                                  <ChevronDown className="w-4 h-4" />
+                                )}
+                              </button>
                             )}
-                          </button>
-                        )}
-                      </div>
+                          </div>
 
-                      {/* Confirmed Image Preview */}
-                      {hasConfirmedImage && !isExpanded && (
-                        <div className="mt-2 relative">
-                          <img
-                            src={confirmedImages[platformKey]!}
-                            alt={`${platform} confirmed`}
-                            className="w-full h-24 object-cover rounded border border-gray-200"
-                          />
-                          <button
-                            onClick={() => removeConfirmedImage(platformKey)}
-                            className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 hover:bg-red-600"
-                          >
-                            <XIcon className="w-3 h-3" />
-                          </button>
-                        </div>
-                      )}
-
-                      {/* Expanded Content */}
-                      <AnimatePresence>
-                        {selectedPlatforms[platformKey] && isExpanded && (
-                          <motion.div
-                            initial={{ height: 0, opacity: 0 }}
-                            animate={{ height: "auto", opacity: 1 }}
-                            exit={{ height: 0, opacity: 0 }}
-                            transition={{ duration: 0.2 }}
-                            className="overflow-hidden"
-                          >
-                            <div className="mt-3 space-y-3 border-t border-gray-200 pt-3">
-                              {/* Image Mode Selection */}
-                              <div className="flex gap-2">
-                                <button
-                                  onClick={() => setImageMode(prev => ({
-                                    ...prev,
-                                    [platformKey]: prev[platformKey] === "upload" ? null : "upload"
-                                  }))}
-                                  className={cn(
-                                    "flex-1 py-2 px-3 text-xs font-medium rounded-md border transition-colors",
-                                    imageMode[platformKey] === "upload"
-                                      ? "bg-pink-50 border-pink-600 text-pink-600"
-                                      : "bg-white border-gray-300 text-gray-700 hover:bg-gray-50"
-                                  )}
-                                >
-                                  <Upload className="w-3 h-3 inline mr-1" />
-                                  Upload Image
-                                </button>
-                              </div>
-
-                              {/* Upload Mode */}
-                              {imageMode[platformKey] === "upload" && (
-                                <div
-                                  onDragOver={handleDragOver}
-                                  onDrop={(e) => handleDrop(platformKey, e)}
-                                  className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center hover:border-pink-400 transition-colors cursor-pointer"
-                                  onClick={() => fileInputRefs[platformKey].current?.click()}
-                                >
-                                  <Upload className="w-8 h-8 mx-auto text-gray-400 mb-2" />
-                                  <p className="text-xs text-gray-600">
-                                    Drag & drop or click to upload
-                                  </p>
-                                  <input
-                                    ref={fileInputRefs[platformKey]}
-                                    type="file"
-                                    accept="image/*"
-                                    className="hidden"
-                                    onChange={(e) => {
-                                      const file = e.target.files?.[0];
-                                      if (file) handleFileUpload(platformKey, file);
-                                    }}
-                                  />
-                                </div>
-                              )}
-
-                              {/* AI generation removed; upload-only flow above */}
-
-                              {/* Image Preview (for uploads) */}
-                              {previewImages[platformKey] && !confirmedImages[platformKey] && (
-                                <div className="space-y-2">
-                                  <img
-                                    src={previewImages[platformKey]!}
-                                    alt={`${platform} preview`}
-                                    className="w-full rounded-lg border border-gray-200"
-                                  />
-                                  <div className="flex gap-2">
-                                    <Button
-                                      size="sm"
-                                      className="flex-1 bg-green-600 hover:bg-green-700 text-white"
-                                      onClick={() => {
-                                        // Confirm the uploaded preview
-                                        const imageUrl = previewImages[platformKey];
-                                        if (imageUrl) {
-                                          setConfirmedImages(prev => ({ ...prev, [platformKey]: imageUrl }));
-                                          onImageUpdate(platformKey, imageUrl);
-                                        }
-                                      }}
-                                    >
-                                      <Check className="w-3 h-3 mr-1" />
-                                      Confirm
-                                    </Button>
-                                    <Button
-                                      size="sm"
-                                      variant="outline"
-                                      onClick={() => setPreviewImages(prev => ({ ...prev, [platformKey]: null }))}
-                                    >
-                                      <XIcon className="w-3 h-3 mr-1" />
-                                      Cancel
-                                    </Button>
-                                  </div>
-                                </div>
-                              )}
-
-                              {/* Confirmed Image */}
-                              {confirmedImages[platformKey] && (
-                                <div className="space-y-2">
-                                  <div className="relative">
-                                    <img
-                                      src={confirmedImages[platformKey]!}
-                                      alt={`${platform} confirmed`}
-                                      className="w-full rounded-lg border-2 border-green-500"
-                                    />
-                                    <div className="absolute top-2 right-2 bg-green-500 text-white rounded-full p-1">
-                                      <Check className="w-4 h-4" />
-                                    </div>
-                                  </div>
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    className="w-full"
-                                    onClick={() => removeConfirmedImage(platformKey)}
-                                  >
-                                    <XIcon className="w-3 h-3 mr-1" />
-                                    Remove Image
-                                  </Button>
-                                </div>
-                              )}
+                          {/* Confirmed Image Preview */}
+                          {hasConfirmedImage && !isExpanded && (
+                            <div className="mt-2 relative">
+                              <img
+                                src={confirmedImages[platformKey]!}
+                                alt={`${platform} confirmed`}
+                                className="w-full h-24 object-cover rounded border border-gray-200"
+                              />
+                              <button
+                                onClick={() => removeConfirmedImage(platformKey)}
+                                className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 hover:bg-red-600"
+                              >
+                                <XIcon className="w-3 h-3" />
+                              </button>
                             </div>
-                          </motion.div>
-                        )}
-                      </AnimatePresence>
-                    </div>
-                  );
-                })
+                          )}
+
+                          {/* Expanded Content */}
+                          <AnimatePresence>
+                            {selectedPlatforms[platformKey] && isExpanded && (
+                              <motion.div
+                                initial={{ height: 0, opacity: 0 }}
+                                animate={{ height: "auto", opacity: 1 }}
+                                exit={{ height: 0, opacity: 0 }}
+                                transition={{ duration: 0.2 }}
+                                className="overflow-hidden"
+                              >
+                                <div className="mt-3 space-y-3 border-t border-gray-200 pt-3">
+                                  {/* Image Mode Selection */}
+                                  <div className="flex gap-2">
+                                    <button
+                                      onClick={() => setImageMode(prev => ({
+                                        ...prev,
+                                        [platformKey]: prev[platformKey] === "upload" ? null : "upload"
+                                      }))}
+                                      className={cn(
+                                        "flex-1 py-2 px-3 text-xs font-medium rounded-md border transition-colors",
+                                        imageMode[platformKey] === "upload"
+                                          ? "bg-pink-50 border-pink-600 text-pink-600"
+                                          : "bg-white border-gray-300 text-gray-700 hover:bg-gray-50"
+                                      )}
+                                    >
+                                      <Upload className="w-3 h-3 inline mr-1" />
+                                      Upload Image
+                                    </button>
+                                  </div>
+
+                                  {/* Upload Mode */}
+                                  {imageMode[platformKey] === "upload" && (
+                                    <div
+                                      onDragOver={handleDragOver}
+                                      onDrop={(e) => handleDrop(platformKey, e)}
+                                      className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center hover:border-pink-400 transition-colors cursor-pointer"
+                                      onClick={() => fileInputRefs[platformKey].current?.click()}
+                                    >
+                                      <Upload className="w-8 h-8 mx-auto text-gray-400 mb-2" />
+                                      <p className="text-xs text-gray-600">
+                                        Drag & drop or click to upload
+                                      </p>
+                                      <input
+                                        ref={fileInputRefs[platformKey]}
+                                        type="file"
+                                        accept="image/*"
+                                        className="hidden"
+                                        onChange={(e) => {
+                                          const file = e.target.files?.[0];
+                                          if (file) handleFileUpload(platformKey, file);
+                                        }}
+                                      />
+                                    </div>
+                                  )}
+
+                                  {/* AI generation removed; upload-only flow above */}
+
+                                  {/* Image Preview (for uploads) */}
+                                  {previewImages[platformKey] && !confirmedImages[platformKey] && (
+                                    <div className="space-y-2">
+                                      <img
+                                        src={previewImages[platformKey]!}
+                                        alt={`${platform} preview`}
+                                        className="w-full rounded-lg border border-gray-200"
+                                      />
+                                      <div className="flex gap-2">
+                                        <Button
+                                          size="sm"
+                                          className="flex-1 bg-green-600 hover:bg-green-700 text-white"
+                                          onClick={() => {
+                                            // Confirm the uploaded preview
+                                            const imageUrl = previewImages[platformKey];
+                                            if (imageUrl) {
+                                              setConfirmedImages(prev => ({ ...prev, [platformKey]: imageUrl }));
+                                              onImageUpdate(platformKey, imageUrl);
+                                            }
+                                          }}
+                                        >
+                                          <Check className="w-3 h-3 mr-1" />
+                                          Confirm
+                                        </Button>
+                                        <Button
+                                          size="sm"
+                                          variant="outline"
+                                          onClick={() => setPreviewImages(prev => ({ ...prev, [platformKey]: null }))}
+                                        >
+                                          <XIcon className="w-3 h-3 mr-1" />
+                                          Cancel
+                                        </Button>
+                                      </div>
+                                    </div>
+                                  )}
+
+                                  {/* Confirmed Image */}
+                                  {confirmedImages[platformKey] && (
+                                    <div className="space-y-2">
+                                      <div className="relative">
+                                        <img
+                                          src={confirmedImages[platformKey]!}
+                                          alt={`${platform} confirmed`}
+                                          className="w-full rounded-lg border-2 border-green-500"
+                                        />
+                                        <div className="absolute top-2 right-2 bg-green-500 text-white rounded-full p-1">
+                                          <Check className="w-4 h-4" />
+                                        </div>
+                                      </div>
+                                      <Button
+                                        size="sm"
+                                        variant="outline"
+                                        className="w-full"
+                                        onClick={() => removeConfirmedImage(platformKey)}
+                                      >
+                                        <XIcon className="w-3 h-3 mr-1" />
+                                        Remove Image
+                                      </Button>
+                                    </div>
+                                  )}
+                                </div>
+                              </motion.div>
+                            )}
+                          </AnimatePresence>
+                        </div>
+                      );
+                    })
                 )}
               </div>
             </div>
@@ -1126,7 +1130,7 @@ const PostGenieAI: React.FC<PostGenieAIProps> = ({ onLogout }) => {
 
       if (response && response.data && response.data.posts) {
         // Filter posts to only include connected platforms
-        const filteredPosts = response.data.posts.filter((post: any) => 
+        const filteredPosts = response.data.posts.filter((post: any) =>
           connectedPlatforms.includes(post.platform)
         );
 
@@ -1197,7 +1201,20 @@ const PostGenieAI: React.FC<PostGenieAIProps> = ({ onLogout }) => {
     imageUrl?: string
   ) => {
     try {
-      const localDate = new Date(`${date}T${time} `);
+      const localDate = new Date(`${date}T${time}`);
+
+      // Validate that the date is valid
+      if (isNaN(localDate.getTime())) {
+        showResponse("Invalid Time", "Please select a valid date and time.", "error");
+        return;
+      }
+
+      // Check if scheduled time is in the future
+      if (localDate <= new Date()) {
+        showResponse("Invalid Time", "Scheduled time must be in the future.", "error");
+        return;
+      }
+
       const result = await api.post("/publish", {
         platform,
         content,

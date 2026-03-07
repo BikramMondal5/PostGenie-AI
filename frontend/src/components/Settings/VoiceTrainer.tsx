@@ -174,14 +174,14 @@ const VoiceTrainer: React.FC = () => {
     }
 
     return (
-        <div className="max-w-4xl space-y-12">
+        <div className="max-w-4xl space-y-8 sm:space-y-12">
             <div>
                 <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-pink-50 text-pink-600 text-[10px] font-bold uppercase tracking-widest mb-3">
                     <Sparkles className="w-3 h-3" />
                     Style Customization
                 </div>
-                <h2 className="text-4xl font-black text-gray-900 tracking-tight">Fine-Tune Your Voice</h2>
-                <p className="text-gray-500 mt-2 text-lg max-w-2xl">Define specific personas, tones, and formatting rules. Your instructions act as a blueprint for the AI.</p>
+                <h2 className="text-2xl sm:text-3xl md:text-4xl font-black text-gray-900 tracking-tight">Fine-Tune Your Voice</h2>
+                <p className="text-gray-500 mt-2 text-sm sm:text-base md:text-lg max-w-2xl">Define specific personas, tones, and formatting rules. Your instructions act as a blueprint for the AI.</p>
             </div>
 
             {connectedPlatforms.length === 0 ? (
@@ -202,9 +202,9 @@ const VoiceTrainer: React.FC = () => {
                 </div>
             ) : (
                 <>
-                    <div className="space-y-8">
+                    <div className="space-y-6 sm:space-y-8">
                         {/* Platform Tabs */}
-                        <div className="flex flex-wrap gap-2 p-1.5 bg-gray-100/50 rounded-[2rem] border border-gray-100 w-fit backdrop-blur-sm">
+                        <div className="flex flex-wrap gap-2 p-1.5 bg-gray-100/50 rounded-[2rem] border border-gray-100 w-full sm:w-fit backdrop-blur-sm">
                             {connectedPlatforms.map((p) => {
                                 const config = platformConfig[p];
                                 const Icon = config?.icon || Info;
@@ -215,14 +215,14 @@ const VoiceTrainer: React.FC = () => {
                                         key={p}
                                         onClick={() => setActivePlatform(p)}
                                         className={cn(
-                                            "flex items-center gap-2.5 px-6 py-3 rounded-[1.5rem] font-bold text-sm transition-all duration-300",
+                                            "flex items-center gap-1.5 sm:gap-2.5 px-3 sm:px-6 py-2 sm:py-3 rounded-[1.5rem] font-bold text-xs sm:text-sm transition-all duration-300 flex-1 sm:flex-initial justify-center",
                                             isActive
                                                 ? "bg-white text-pink-600 shadow-md border border-pink-50"
                                                 : "text-gray-500 hover:text-gray-700 hover:bg-white/50"
                                         )}
                                     >
-                                        <Icon className={cn("w-4 h-4", isActive ? config?.color : "text-gray-400")} />
-                                        {config?.name || p}
+                                        <Icon className={cn("w-3 h-3 sm:w-4 sm:h-4", isActive ? config?.color : "text-gray-400")} />
+                                        <span className="hidden xs:inline">{config?.name || p}</span>
                                     </button>
                                 );
                             })}
@@ -230,31 +230,31 @@ const VoiceTrainer: React.FC = () => {
 
                         {/* Creative Input Section */}
                         {activePlatform && (
-                            <div className="bg-white border border-gray-100 rounded-[3rem] shadow-xl shadow-pink-500/5 overflow-hidden group">
-                                <div className="p-10">
-                                    <div className="flex items-center justify-between mb-8">
-                                        <div className="flex items-center gap-5">
-                                            <div className={cn("p-5 rounded-[1.5rem] shadow-sm", platformConfig[activePlatform]?.bgColor || "bg-gray-50")}>
+                            <div className="bg-white border border-gray-100 rounded-[2rem] sm:rounded-[3rem] shadow-xl shadow-pink-500/5 overflow-hidden group">
+                                <div className="p-4 sm:p-6 md:p-10">
+                                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6 sm:mb-8">
+                                        <div className="flex items-center gap-3 sm:gap-5">
+                                            <div className={cn("p-3 sm:p-5 rounded-[1.5rem] shadow-sm", platformConfig[activePlatform]?.bgColor || "bg-gray-50")}>
                                                 {React.createElement(platformConfig[activePlatform]?.icon || Info, {
-                                                    className: cn("w-8 h-8", platformConfig[activePlatform]?.color || "text-gray-600")
+                                                    className: cn("w-5 h-5 sm:w-8 sm:h-8", platformConfig[activePlatform]?.color || "text-gray-600")
                                                 })}
                                             </div>
                                             <div>
-                                                <h3 className="text-2xl font-black text-gray-900 tracking-tight">
+                                                <h3 className="text-lg sm:text-2xl font-black text-gray-900 tracking-tight">
                                                     New {platformConfig[activePlatform]?.name} Persona
                                                 </h3>
-                                                <p className="text-sm text-gray-500 font-medium">Create a new instruction set for this platform</p>
+                                                <p className="text-xs sm:text-sm text-gray-500 font-medium">Create a new instruction set for this platform</p>
                                             </div>
                                         </div>
                                         <Button
                                             onClick={() => handleSaveInstruction(activePlatform)}
                                             disabled={isSaving[activePlatform]}
-                                            className="bg-pink-500 hover:bg-pink-600 text-white rounded-2xl px-8 h-14 font-bold shadow-md shadow-pink-200/50 transition-all flex items-center gap-3 transform hover:scale-105"
+                                            className="bg-pink-500 hover:bg-pink-600 text-white rounded-2xl px-4 sm:px-8 h-11 sm:h-14 font-bold shadow-md shadow-pink-200/50 transition-all flex items-center gap-2 sm:gap-3 transform hover:scale-105 w-full sm:w-auto text-sm sm:text-base"
                                         >
                                             {isSaving[activePlatform] ? (
-                                                <RefreshCw className="w-5 h-5 animate-spin" />
+                                                <RefreshCw className="w-4 h-4 sm:w-5 sm:h-5 animate-spin" />
                                             ) : (
-                                                <Zap className="w-5 h-5 fill-white" />
+                                                <Zap className="w-4 h-4 sm:w-5 sm:h-5 fill-white" />
                                             )}
                                             Save & Activate
                                         </Button>

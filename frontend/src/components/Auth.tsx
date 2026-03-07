@@ -78,9 +78,9 @@ const Auth: React.FC<AuthProps> = ({ onAuthSuccess }) => {
                 transition={{ duration: 0.5, ease: "easeOut" }}
                 className="w-full max-w-md z-10"
             >
-                <div className="flex justify-center mb-8">
-                    <div className="flex items-center gap-4">
-                        <div className="w-14 h-14 rounded-2xl overflow-hidden shadow-md border border-pink-100">
+                <div className="flex justify-center mb-6 sm:mb-8">
+                    <div className="flex items-center gap-3 sm:gap-4">
+                        <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl overflow-hidden shadow-md border border-pink-100">
                             <img
                                 src="/app-logo.png"
                                 alt="PostGenie AI Logo"
@@ -88,24 +88,24 @@ const Auth: React.FC<AuthProps> = ({ onAuthSuccess }) => {
                             />
                         </div>
                         <div>
-                            <h1 className="text-3xl font-black text-pink-600 tracking-tight">PostGenie AI</h1>
-                            <p className="text-xs text-black font-bold uppercase tracking-widest">AI Magic for Every Post</p>
+                            <h1 className="text-2xl sm:text-3xl font-black text-pink-600 tracking-tight">PostGenie AI</h1>
+                            <p className="text-[10px] sm:text-xs text-black font-bold uppercase tracking-widest">AI Magic for Every Post</p>
                         </div>
                     </div>
                 </div>
 
                 <Card className="border-gray-100 shadow-2xl bg-white/80 backdrop-blur-xl">
-                    <CardHeader className="space-y-1 pb-6 text-center">
-                        <CardTitle className="text-2xl font-bold tracking-tight text-gray-900">
+                    <CardHeader className="space-y-1 pb-4 sm:pb-6 text-center px-4 sm:px-6">
+                        <CardTitle className="text-xl sm:text-2xl font-bold tracking-tight text-gray-900">
                             {isLogin ? 'Welcome back' : 'Create an account'}
                         </CardTitle>
-                        <CardDescription className="text-gray-500">
+                        <CardDescription className="text-sm sm:text-base text-gray-500">
                             {isLogin
                                 ? 'Enter your credentials to access your dashboard'
                                 : 'Join PostGenie and start creating magic with AI'}
                         </CardDescription>
                     </CardHeader>
-                    <CardContent className="space-y-4">
+                    <CardContent className="space-y-4 px-4 sm:px-6">
                         <AnimatePresence mode="wait">
                             {error && (
                                 <motion.div

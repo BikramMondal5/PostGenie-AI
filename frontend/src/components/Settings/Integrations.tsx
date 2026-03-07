@@ -121,13 +121,13 @@ const Integrations: React.FC = () => {
 
     return (
         <div className="max-w-3xl text-gray-900">
-            <div className="mb-10">
+            <div className="mb-6 sm:mb-10">
                 <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-pink-50 text-pink-600 text-[10px] font-bold uppercase tracking-widest mb-3">
                     <Link2 className="w-3 h-3" />
                     App Integration
                 </div>
-                <h2 className="text-4xl font-black text-gray-900 tracking-tight">Social Integrations</h2>
-                <p className="text-gray-400 mt-1 text-lg">Manage your connected social media accounts and publishing permissions.</p>
+                <h2 className="text-2xl sm:text-3xl md:text-4xl font-black text-gray-900 tracking-tight">Social Integrations</h2>
+                <p className="text-gray-400 mt-1 text-sm sm:text-base md:text-lg">Manage your connected social media accounts and publishing permissions.</p>
             </div>
 
             <div className="grid gap-4">
@@ -139,19 +139,19 @@ const Integrations: React.FC = () => {
                         <div
                             key={key}
                             className={cn(
-                                "p-5 rounded-2xl border transition-all duration-300 flex items-center justify-between",
+                                "p-4 sm:p-5 rounded-2xl border transition-all duration-300 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4",
                                 state.connected
                                     ? "bg-white border-gray-100 shadow-sm"
                                     : "bg-gray-50/50 border-dashed border-gray-200"
                             )}
                         >
-                            <div className="flex items-center gap-4">
-                                <div className={cn("p-3 rounded-xl", config.bgColor)}>
-                                    <Icon className={cn("w-6 h-6", config.color)} />
+                            <div className="flex items-center gap-3 sm:gap-4 w-full sm:w-auto">
+                                <div className={cn("p-2.5 sm:p-3 rounded-xl", config.bgColor)}>
+                                    <Icon className={cn("w-5 h-5 sm:w-6 sm:h-6", config.color)} />
                                 </div>
-                                <div className="text-left">
-                                    <div className="flex items-center gap-2">
-                                        <h3 className="font-bold text-gray-900">{config.name}</h3>
+                                <div className="text-left flex-1">
+                                    <div className="flex items-center gap-2 flex-wrap">
+                                        <h3 className="font-bold text-gray-900 text-sm sm:text-base">{config.name}</h3>
                                         {state.connected ? (
                                             <Badge variant="outline" className="bg-green-50 text-green-700 border-green-100 text-[10px] uppercase tracking-wider py-0 px-2 h-5">
                                                 <CheckCircle2 className="w-3 h-3 mr-1" />
@@ -171,9 +171,9 @@ const Integrations: React.FC = () => {
                                 </div>
                             </div>
 
-                            <div className="flex items-center gap-6">
+                            <div className="flex items-center gap-3 sm:gap-6 w-full sm:w-auto justify-between sm:justify-start">
                                 {state.connected ? (
-                                    <div className="flex items-center gap-3 pr-4 border-r border-gray-100">
+                                    <div className="flex items-center gap-2 sm:gap-3 sm:pr-4 sm:border-r border-gray-100">
                                         <Label htmlFor={`${key}-toggle`} className="text-xs font-semibold text-gray-600">
                                             {state.active ? 'Active' : 'Paused'}
                                         </Label>
@@ -190,16 +190,16 @@ const Integrations: React.FC = () => {
                                     size="sm"
                                     onClick={() => state.connected ? handleDisconnect(key) : handleConnect(key)}
                                     className={cn(
-                                        "font-bold h-10 px-4",
+                                        "font-bold h-9 sm:h-10 px-3 sm:px-4 text-xs sm:text-sm",
                                         state.connected
                                             ? "text-red-500 hover:text-red-700 hover:bg-red-50"
                                             : "text-pink-600 border-pink-100 hover:bg-pink-50"
                                     )}
                                 >
                                     {state.connected ? (
-                                        <><Unlink2 className="w-4 h-4 mr-2" /> Disconnect</>
+                                        <><Unlink2 className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" /> <span className="hidden xs:inline">Disconnect</span><span className="xs:hidden">Disc.</span></>
                                     ) : (
-                                        <><Link2 className="w-4 h-4 mr-2" /> Connect Account</>
+                                        <><Link2 className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" /> <span className="hidden xs:inline">Connect Account</span><span className="xs:hidden">Connect</span></>
                                     )}
                                 </Button>
                             </div>

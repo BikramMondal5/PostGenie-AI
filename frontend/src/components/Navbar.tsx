@@ -26,13 +26,13 @@ const Navbar: React.FC<NavbarProps> = ({ onLogout }) => {
 
     return (
         <nav className="relative z-50 border-b border-gray-200 bg-white/80 backdrop-blur-sm sticky top-0">
-            <div className="px-8 py-4 flex items-center justify-between">
+            <div className="px-3 sm:px-6 md:px-8 py-3 sm:py-4 flex items-center justify-between">
                 {/* Logo and App name */}
                 <div
-                    className="flex items-center gap-4 cursor-pointer ml-4"
+                    className="flex items-center gap-2 sm:gap-4 cursor-pointer ml-0 sm:ml-4"
                     onClick={() => navigate('/')}
                 >
-                    <div className="w-10 h-10 rounded-xl overflow-hidden shadow-sm border border-pink-100 flex-shrink-0">
+                    <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl overflow-hidden shadow-sm border border-pink-100 flex-shrink-0">
                         <img
                             src="/app-logo.png"
                             alt="PostGenie AI Logo"
@@ -40,8 +40,8 @@ const Navbar: React.FC<NavbarProps> = ({ onLogout }) => {
                         />
                     </div>
                     <div className="flex flex-col">
-                        <h1 className="text-xl font-black text-pink-600 leading-none">PostGenie AI</h1>
-                        <p className="text-[10px] text-black font-bold uppercase tracking-wider mt-1">AI Magic for Every Post</p>
+                        <h1 className="text-base sm:text-xl font-black text-pink-600 leading-none">PostGenie AI</h1>
+                        <p className="text-[8px] sm:text-[10px] text-black font-bold uppercase tracking-wider mt-0.5 sm:mt-1 hidden xs:block">AI Magic for Every Post</p>
                     </div>
                 </div>
 
@@ -90,40 +90,40 @@ const Navbar: React.FC<NavbarProps> = ({ onLogout }) => {
                 </div>
 
                 {/* Right side actions */}
-                <div className="flex items-center gap-1">
+                <div className="flex items-center gap-1 sm:gap-2">
                     <Button
                         variant="outline"
                         size="sm"
                         onClick={() => navigate('/settings/integrations')}
-                        className="px-8 h-11 rounded-2xl border-pink-100 text-pink-600 font-black hover:bg-pink-50 transition-all shadow-sm hidden sm:flex"
+                        className="px-3 sm:px-8 h-9 sm:h-11 rounded-2xl border-pink-100 text-pink-600 font-black hover:bg-pink-50 transition-all shadow-sm hidden md:flex"
                     >
-                        <Plus className="w-4 h-4 mr-2" />
-                        Connect Accounts
+                        <Plus className="w-4 h-4 sm:mr-2" />
+                        <span className="hidden lg:inline">Connect Accounts</span>
                     </Button>
 
                     <button
                         onClick={onLogout}
-                        className="flex items-center gap-2 px-4 py-2 text-red-600 hover:bg-red-50 rounded-2xl transition-all font-bold text-sm hidden sm:flex"
+                        className="items-center gap-2 px-2 sm:px-4 py-2 text-red-600 hover:bg-red-50 rounded-2xl transition-all font-bold text-sm hidden md:flex"
                     >
-                        <LogOut className="w-5 h-5" />
-                        Log Out
+                        <LogOut className="w-4 h-4 sm:w-5 sm:h-5" />
+                        <span className="hidden lg:inline">Log Out</span>
                     </button>
 
                     <button
                         onClick={() => navigate('/settings/account')}
-                        className="flex items-center gap-3 group"
+                        className="flex items-center gap-2 sm:gap-3 group"
                     >
-                        <div className="flex flex-col items-end hidden md:flex">
+                        <div className="flex flex-col items-end hidden lg:flex">
                             <p className="text-sm font-bold text-gray-900 group-hover:text-pink-600 transition-colors">
                                 {user?.displayName || user?.email?.split('@')[0]}
                             </p>
                             <p className="text-[10px] text-gray-400 font-medium">View Profile</p>
                         </div>
-                        <div className="w-10 h-10 rounded-2xl bg-pink-50 flex items-center justify-center text-pink-600 border border-pink-100 shadow-sm overflow-hidden group-hover:border-pink-300 transition-all transform group-hover:scale-105 ring-2 ring-white">
+                        <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-2xl bg-pink-50 flex items-center justify-center text-pink-600 border border-pink-100 shadow-sm overflow-hidden group-hover:border-pink-300 transition-all transform group-hover:scale-105 ring-2 ring-white">
                             {user?.avatarUrl ? (
                                 <img src={user.avatarUrl} alt="User Avatar" className="w-full h-full object-cover" />
                             ) : (
-                                <UserIcon className="w-5 h-5" />
+                                <UserIcon className="w-4 h-4 sm:w-5 sm:h-5" />
                             )}
                         </div>
                     </button>
