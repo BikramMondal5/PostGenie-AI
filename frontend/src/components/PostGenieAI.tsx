@@ -20,6 +20,7 @@ import {
   ImageIcon,
   X as XIcon,
   Loader2,
+  AlertCircle,
 } from "lucide-react";
 import ReactQuill from "react-quill";
 import "react-quill/dist/quill.snow.css";
@@ -532,6 +533,7 @@ interface InputNodeProps {
   onGenerate: (prompt: string, images: { [platform: string]: string }) => void;
   onImageUpdate: (platform: string, imageUrl: string | null) => void;
   isGenerating: boolean;
+  connectedPlatforms: string[];
   onPositionChange?: (pos: { x: number; y: number }) => void;
 }
 
@@ -540,6 +542,7 @@ const InputNode: React.FC<InputNodeProps> = ({
   onGenerate,
   onImageUpdate,
   isGenerating,
+  connectedPlatforms,
   onPositionChange,
 }) => {
   const [activeTab, setActiveTab] = useState<"text" | "image">("text");
@@ -854,7 +857,27 @@ const InputNode: React.FC<InputNodeProps> = ({
 
               {/* Platform Checkboxes */}
               <div className="space-y-3">
-                {Object.entries(platformConfig).map(([platform, config]) => {
+                {connectedPlatforms.length === 0 ? (
+                  <div className="text-center py-8 px-4 bg-amber-50 border border-amber-200 rounded-lg">
+                    <AlertCircle className="w-8 h-8 text-amber-600 mx-auto mb-2" />
+                    <p className="text-sm font-semibold text-amber-900 mb-1">
+                      No Platforms Connected
+                    </p>
+                    <p className="text-xs text-amber-700 mb-3">
+                      Connect your social media accounts to upload images
+                    </p>
+                    <Button
+                      size="sm"
+                      onClick={() => window.location.href = '/settings/integrations'}
+                      className="bg-amber-600 hover:bg-amber-700 text-white"
+                    >
+                      Go to Integrations
+                    </Button>
+                  </div>
+                ) : (
+                  Object.entries(platformConfig)
+                    .filter(([platform]) => connectedPlatforms.includes(platform))
+                    .map(([platform, config]) => {
                   const platformKey = platform as keyof typeof selectedPlatforms;
                   const Icon = config.icon;
                   const isExpanded = expandedPlatform === platform;
@@ -1033,7 +1056,8 @@ const InputNode: React.FC<InputNodeProps> = ({
                       </AnimatePresence>
                     </div>
                   );
-                })}
+                })
+                )}
               </div>
             </div>
           )}
@@ -1064,6 +1088,7 @@ const PostGenieAI: React.FC<PostGenieAIProps> = ({ onLogout }) => {
   const [inputNodePosition, setInputNodePosition] = useState({ x: 100, y: 200 });
   const [isInitialCentered, setIsInitialCentered] = useState(false);
   const [inputNodeWidth, setInputNodeWidth] = useState(500);
+  const [connectedPlatforms, setConnectedPlatforms] = useState<string[]>([]);
 
   const [modalState, setModalState] = useState<{
     isOpen: boolean;
@@ -1082,6 +1107,16 @@ const PostGenieAI: React.FC<PostGenieAIProps> = ({ onLogout }) => {
   };
 
   const handleGenerate = async (prompt: string, images: { [platform: string]: string }) => {
+    // Check if any platforms are connected
+    if (connectedPlatforms.length === 0) {
+      showResponse(
+        "No Platforms Connected",
+        "Please connect at least one social media platform in Settings > Integrations before generating posts.",
+        "info"
+      );
+      return;
+    }
+
     setIsGenerating(true);
     setOriginalPrompt(prompt); // Store the original prompt for regeneration
 
@@ -1090,8 +1125,13 @@ const PostGenieAI: React.FC<PostGenieAIProps> = ({ onLogout }) => {
       const response = await api.post("/content/generate", { prompt });
 
       if (response && response.data && response.data.posts) {
+        // Filter posts to only include connected platforms
+        const filteredPosts = response.data.posts.filter((post: any) => 
+          connectedPlatforms.includes(post.platform)
+        );
+
         // Map the backend structure to our frontend format and attach images
-        const newPosts = response.data.posts.map((post: any, index: number) => ({
+        const newPosts = filteredPosts.map((post: any, index: number) => ({
           platform: post.platform,
           content: post.content,
           imageUrl: images[post.platform] || undefined,
@@ -1120,6 +1160,22 @@ const PostGenieAI: React.FC<PostGenieAIProps> = ({ onLogout }) => {
       )
     );
   };
+
+  // Fetch connected platforms on mount
+  useEffect(() => {
+    const fetchConnectedPlatforms = async () => {
+      try {
+        const data = await api.get('/oauth/connections');
+        const connected = data.connections
+          .filter((conn: any) => conn.platform)
+          .map((conn: any) => conn.platform);
+        setConnectedPlatforms(connected);
+      } catch (error) {
+        console.error('Failed to fetch connected platforms:', error);
+      }
+    };
+    fetchConnectedPlatforms();
+  }, []);
 
   // Always keep the input node centered
   useEffect(() => {
@@ -1311,6 +1367,7 @@ const PostGenieAI: React.FC<PostGenieAIProps> = ({ onLogout }) => {
           onGenerate={handleGenerate}
           onImageUpdate={handleImageUpdate}
           isGenerating={isGenerating}
+          connectedPlatforms={connectedPlatforms}
           onPositionChange={(pos) => {
             setInputNodePosition(pos);
             // if this was the initial centered state, mark moved and shrink to normal
