@@ -2,7 +2,7 @@
 
 PostGenie AI is an AI-powered platform that transforms a single idea into platform-optimized social media posts. By leveraging Amazon Bedrock’s advanced foundation models, the system generates tailored content for platforms such as LinkedIn, X, Instagram, and Facebook while maintaining a consistent brand voice. 
 
-![Preview Image](frontend/public/screenshot.png)
+![Preview Image](screenshot.png)
 The platform also enables users to edit, regenerate, schedule, and publish posts directly to their connected social accounts. With its modern and intuitive interface, PostGenie AI simplifies and accelerates the entire social media content creation workflow.
 
 ## 🚀 Hackathon Information
