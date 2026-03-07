@@ -5,28 +5,31 @@ import Auth from './components/Auth'
 import SettingsLayout from './components/Settings/SettingsLayout'
 import Integrations from './components/Settings/Integrations'
 import VoiceTrainer from './components/Settings/VoiceTrainer'
+import AccountSettings from './components/Settings/AccountSettings'
+
+import { useUser } from './lib/UserContext'
 
 function App() {
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false)
+  const { user, setUser } = useUser();
   const [loading, setLoading] = useState<boolean>(true)
 
   useEffect(() => {
     // Check if user is already authenticated
     const token = localStorage.getItem('token')
-    if (token) {
-      setIsAuthenticated(true)
+    if (token && !user) {
+      // User is set by refreshUser in UserProvider, but we verify here for safety
     }
     setLoading(false)
-  }, [])
+  }, [user])
 
-  const handleAuthSuccess = (_token: string, _user: any) => {
-    setIsAuthenticated(true)
+  const handleAuthSuccess = (_token: string, userData: any) => {
+    setUser(userData);
   }
 
   const handleLogout = () => {
     localStorage.removeItem('token')
     localStorage.removeItem('user')
-    setIsAuthenticated(false)
+    setUser(null);
   }
 
   if (loading) {
@@ -37,7 +40,7 @@ function App() {
     )
   }
 
-  if (!isAuthenticated) {
+  if (!user) {
     return <Auth onAuthSuccess={handleAuthSuccess} />
   }
 
@@ -49,7 +52,7 @@ function App() {
           <Route index element={<Navigate to="/settings/integrations" replace />} />
           <Route path="integrations" element={<Integrations />} />
           <Route path="train" element={<VoiceTrainer />} />
-          <Route path="account" element={<div className="p-4 text-gray-500">Account settings coming soon...</div>} />
+          <Route path="account" element={<AccountSettings />} />
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

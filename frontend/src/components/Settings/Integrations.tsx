@@ -121,9 +121,13 @@ const Integrations: React.FC = () => {
 
     return (
         <div className="max-w-3xl text-gray-900">
-            <div className="mb-8">
-                <h2 className="text-2xl font-bold text-gray-900">Social Integrations</h2>
-                <p className="text-gray-500 mt-1">Manage your connected social media accounts and publishing permissions.</p>
+            <div className="mb-10">
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-pink-50 text-pink-600 text-[10px] font-bold uppercase tracking-widest mb-3">
+                    <Link2 className="w-3 h-3" />
+                    App Integration
+                </div>
+                <h2 className="text-4xl font-black text-gray-900 tracking-tight">Social Integrations</h2>
+                <p className="text-gray-400 mt-1 text-lg">Manage your connected social media accounts and publishing permissions.</p>
             </div>
 
             <div className="grid gap-4">

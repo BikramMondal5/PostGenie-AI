@@ -82,14 +82,14 @@ const Auth: React.FC<AuthProps> = ({ onAuthSuccess }) => {
                     <div className="flex items-center gap-4">
                         <div className="w-14 h-14 rounded-2xl overflow-hidden shadow-md border border-pink-100">
                             <img
-                                src="/app-logo.jpeg?v=1"
+                                src="/app-logo.png"
                                 alt="PostGenie AI Logo"
                                 className="w-full h-full object-cover"
                             />
                         </div>
                         <div>
-                            <h1 className="text-3xl font-black text-gray-900 tracking-tight">PostGenie AI</h1>
-                            <p className="text-xs text-pink-600 font-bold uppercase tracking-widest">AI Magic for Every Post</p>
+                            <h1 className="text-3xl font-black text-pink-600 tracking-tight">PostGenie AI</h1>
+                            <p className="text-xs text-black font-bold uppercase tracking-widest">AI Magic for Every Post</p>
                         </div>
                     </div>
                 </div>

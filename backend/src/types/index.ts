@@ -4,6 +4,10 @@ export interface User {
   userId: string;
   email: string;
   passwordHash: string;
+  displayName?: string;
+  avatarUrl?: string;
+  bio?: string;
+  timezone?: string;
   createdAt: string;
   lastLoginAt: string;
 }

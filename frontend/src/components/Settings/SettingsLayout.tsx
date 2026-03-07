@@ -1,21 +1,18 @@
 import React from 'react';
-import { NavLink, Outlet, useNavigate } from 'react-router-dom';
+import { NavLink, Outlet } from 'react-router-dom';
 import {
-    ArrowLeft,
     Share2,
     Wand2,
-    User,
-    LogOut
+    User
 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import Navbar from '../Navbar';
 
 interface SettingsLayoutProps {
     onLogout: () => void;
 }
 
 const SettingsLayout: React.FC<SettingsLayoutProps> = ({ onLogout }) => {
-    const navigate = useNavigate();
 
     const menuItems = [
         {
@@ -40,48 +37,12 @@ const SettingsLayout: React.FC<SettingsLayoutProps> = ({ onLogout }) => {
 
     return (
         <div className="min-h-screen bg-gray-50 flex flex-col">
-            {/* Settings Header */}
-            <header className="bg-white border-b border-gray-200 sticky top-0 z-30">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-                    <div className="flex items-center gap-4">
-                        <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => navigate('/')}
-                            className="text-gray-500 hover:text-pink-600"
-                        >
-                            <ArrowLeft className="w-4 h-4 mr-2" />
-                            Back to Dashboard
-                        </Button>
-                        <div className="h-6 w-[1px] bg-gray-200" />
-                        <div className="flex items-center gap-2">
-                            <div className="w-8 h-8 rounded-lg overflow-hidden border border-pink-100 shadow-sm">
-                                <img
-                                    src="/app-logo.jpeg?v=1"
-                                    alt="PostGenie Logo"
-                                    className="w-full h-full object-cover"
-                                />
-                            </div>
-                            <h1 className="text-lg font-bold text-gray-900">Settings</h1>
-                        </div>
-                    </div>
-
-                    <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={onLogout}
-                        className="text-gray-500 hover:text-red-600"
-                    >
-                        <LogOut className="w-4 h-4 mr-2" />
-                        Logout
-                    </Button>
-                </div>
-            </header>
+            <Navbar onLogout={onLogout} />
 
             <div className="flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8">
                 <div className="flex flex-col lg:flex-row gap-8">
                     {/* Sidebar */}
-                    <aside className="w-full lg:w-64 shrink-0">
+                    <aside className="w-full lg:w-64 shrink-0 lg:sticky lg:top-24 h-fit">
                         <nav className="space-y-1">
                             {menuItems.map((item) => (
                                 <NavLink

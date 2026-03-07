@@ -13,7 +13,7 @@ export class UserRepository {
   async createUser(email: string, password: string): Promise<User> {
     const passwordHash = await bcrypt.hash(password, SALT_ROUNDS);
     const now = new Date().toISOString();
-    
+
     const user: User = {
       userId: uuidv4(),
       email: email.toLowerCase(),
@@ -97,7 +97,7 @@ export class UserRepository {
    */
   async updatePassword(userId: string, newPassword: string): Promise<void> {
     const passwordHash = await bcrypt.hash(newPassword, SALT_ROUNDS);
-    
+
     await dynamoDb.send(
       new UpdateCommand({
         TableName: TABLES.USERS,
@@ -116,5 +116,72 @@ export class UserRepository {
   async emailExists(email: string): Promise<boolean> {
     const user = await this.getUserByEmail(email);
     return user !== null;
+  }
+
+  /**
+   * Update user profile fields (displayName, avatarUrl, bio, timezone)
+   */
+  async updateProfile(userId: string, updates: { displayName?: string; avatarUrl?: string; bio?: string; timezone?: string }): Promise<void> {
+    if (Object.keys(updates).length === 0) return;
+
+    const setParts: string[] = [];
+    const expressionValues: Record<string, any> = {};
+    const expressionNames: Record<string, string> = {};
+
+    if (updates.displayName !== undefined) {
+      setParts.push('#displayName = :displayName');
+      expressionValues[':displayName'] = updates.displayName;
+      expressionNames['#displayName'] = 'displayName';
+    }
+    if (updates.avatarUrl !== undefined) {
+      setParts.push('#avatarUrl = :avatarUrl');
+      expressionValues[':avatarUrl'] = updates.avatarUrl;
+      expressionNames['#avatarUrl'] = 'avatarUrl';
+    }
+    if (updates.bio !== undefined) {
+      setParts.push('#bio = :bio');
+      expressionValues[':bio'] = updates.bio;
+      expressionNames['#bio'] = 'bio';
+    }
+    if (updates.timezone !== undefined) {
+      setParts.push('#timezone = :timezone');
+      expressionValues[':timezone'] = updates.timezone;
+      expressionNames['#timezone'] = 'timezone';
+    }
+
+    await dynamoDb.send(
+      new UpdateCommand({
+        TableName: TABLES.USERS,
+        Key: { userId },
+        UpdateExpression: `SET ${setParts.join(', ')}`,
+        ExpressionAttributeValues: expressionValues,
+        ExpressionAttributeNames: expressionNames,
+      })
+    );
+  }
+
+  /**
+   * Delete a user by userId
+   */
+  async deleteUser(userId: string): Promise<void> {
+    await dynamoDb.send(
+      new UpdateCommand({
+        TableName: TABLES.USERS,
+        Key: { userId },
+        UpdateExpression: 'SET isDeleted = :deleted',
+        ExpressionAttributeValues: {
+          ':deleted': true,
+        },
+      })
+    );
+    // Alternatively, fully delete:
+    /*
+    await dynamoDb.send(
+      new DeleteCommand({
+        TableName: TABLES.USERS,
+        Key: { userId },
+      })
+    );
+    */
   }
 }

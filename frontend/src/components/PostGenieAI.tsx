@@ -1,10 +1,8 @@
 import React, { useState, useRef, useCallback, useEffect } from "react";
 import DotGrid from "./DotGrid";
-import { useNavigate } from "react-router-dom";
+import Navbar from "./Navbar";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  User,
-  Plus,
   Twitter,
   Linkedin,
   Instagram,
@@ -13,10 +11,6 @@ import {
   Edit,
   Download,
   Sparkles,
-  LogOut,
-  Share2,
-  Wand2,
-  FileText,
   Check,
   Clock,
   ChevronDown,
@@ -56,7 +50,7 @@ const ConnectionLine: React.FC<ConnectionLineProps> = ({
   const midX = (from.x + to.x) / 2;
   const controlX1 = from.x + (midX - from.x) * 0.5;
   const controlX2 = to.x - (to.x - midX) * 0.5;
-  const path = `M ${from.x} ${from.y} C ${controlX1} ${from.y}, ${controlX2} ${to.y}, ${to.x} ${to.y}`;
+  const path = `M ${from.x} ${from.y} C ${controlX1} ${from.y}, ${controlX2} ${to.y}, ${to.x} ${to.y} `;
 
   return (
     <svg
@@ -121,8 +115,8 @@ const PlatformCard: React.FC<PlatformCardProps> = ({
   onRegenerate,
   onCopy,
   onExport,
-  onSchedule = (_c, d, t) => console.log(`Scheduled content to ${platform} for ${d} at ${t}`),
-  onPost = (_c, _i) => console.log(`Posted to ${platform}`),
+  onSchedule = (_c, d, t) => console.log(`Scheduled content to ${platform} for ${d} at ${t} `),
+  onPost = (_c, _i) => console.log(`Posted to ${platform} `),
   imageUrl,
 }) => {
   const [isDragging, setIsDragging] = useState(false);
@@ -186,7 +180,7 @@ const PlatformCard: React.FC<PlatformCardProps> = ({
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `${platform}-post.txt`;
+    a.download = `${platform} -post.txt`;
     a.click();
     URL.revokeObjectURL(url);
     onExport();
@@ -751,11 +745,8 @@ const InputNode: React.FC<InputNodeProps> = ({
           {/* Text Post Tab Content */}
           {activeTab === "text" && (
             <>
-              <div className="flex items-center gap-2 mb-2">
-                <div className="p-2 rounded-lg bg-pink-50">
-                  <Sparkles className="w-5 h-5 text-pink-600" />
-                </div>
-                <h3 className="text-lg font-bold text-gray-900">
+              <div className="mb-4">
+                <h3 className="text-2xl font-black text-gray-900">
                   AI Content Studio
                 </h3>
               </div>
@@ -795,8 +786,8 @@ const InputNode: React.FC<InputNodeProps> = ({
                   onClick={() => {
                     // Combine topic and description into prompt
                     const fullPrompt = description
-                      ? `Topic: ${topic}\n\nDescription: ${description}`
-                      : `Topic: ${topic}`;
+                      ? `Topic: ${topic} \n\nDescription: ${description} `
+                      : `Topic: ${topic} `;
 
                     // Collect confirmed images
                     const images: { [key: string]: string } = {};
@@ -830,21 +821,21 @@ const InputNode: React.FC<InputNodeProps> = ({
           {activeTab === "image" && (
             <div className="max-h-[400px] overflow-y-auto pr-2 custom-pink-scrollbar">
               <style>{`
-                .custom-pink-scrollbar::-webkit-scrollbar {
-                  width: 8px;
-                }
-                .custom-pink-scrollbar::-webkit-scrollbar-track {
-                  background: #fce7f3;
-                  border-radius: 4px;
-                }
-                .custom-pink-scrollbar::-webkit-scrollbar-thumb {
-                  background: #fbcfe8;
-                  border-radius: 4px;
-                }
-                .custom-pink-scrollbar::-webkit-scrollbar-thumb:hover {
-                  background: #f9a8d4;
-                }
-              `}</style>
+  .custom - pink - scrollbar:: -webkit - scrollbar {
+  width: 8px;
+}
+                .custom - pink - scrollbar:: -webkit - scrollbar - track {
+  background: #fce7f3;
+  border - radius: 4px;
+}
+                .custom - pink - scrollbar:: -webkit - scrollbar - thumb {
+  background: #fbcfe8;
+  border - radius: 4px;
+}
+                .custom - pink - scrollbar:: -webkit - scrollbar - thumb:hover {
+  background: #f9a8d4;
+}
+`}</style>
               <div className="flex items-center gap-2 mb-2">
                 <div className="p-2 rounded-lg bg-pink-50">
                   <ImageIcon className="w-5 h-5 text-pink-600" />
@@ -1056,7 +1047,6 @@ interface PostGenieAIProps {
 }
 
 const PostGenieAI: React.FC<PostGenieAIProps> = ({ onLogout }) => {
-  const navigate = useNavigate();
   const [isGenerating, setIsGenerating] = useState(false);
   const [originalPrompt, setOriginalPrompt] = useState("");
   const [generatedPosts, setGeneratedPosts] = useState<
@@ -1149,7 +1139,7 @@ const PostGenieAI: React.FC<PostGenieAIProps> = ({ onLogout }) => {
     imageUrl?: string
   ) => {
     try {
-      const localDate = new Date(`${date}T${time}`);
+      const localDate = new Date(`${date}T${time} `);
       const result = await api.post("/publish", {
         platform,
         content,
@@ -1161,13 +1151,13 @@ const PostGenieAI: React.FC<PostGenieAIProps> = ({ onLogout }) => {
         if (result.scheduled) {
           showResponse(
             "Post Scheduled",
-            `✅ Post scheduled for ${platform} at ${date} ${time}!\n\nYour post will be automatically published at the scheduled time.`,
+            `✅ Post scheduled for ${platform} at ${date} ${time} !\n\nYour post will be automatically published at the scheduled time.`,
             "success"
           );
         } else {
           showResponse(
             "Post Published",
-            `Successfully published to ${platform}!`,
+            `Successfully published to ${platform} !`,
             "success"
           );
         }
@@ -1199,7 +1189,7 @@ const PostGenieAI: React.FC<PostGenieAIProps> = ({ onLogout }) => {
       });
 
       if (result.success) {
-        showResponse("Success", `Successfully posted to ${platform}!`, "success");
+        showResponse("Success", `Successfully posted to ${platform} !`, "success");
       } else {
         showResponse("Error", `Failed to post to ${platform}.`, "error");
       }
@@ -1296,71 +1286,7 @@ const PostGenieAI: React.FC<PostGenieAIProps> = ({ onLogout }) => {
     <div className="w-full h-screen bg-white overflow-hidden relative">
       <DotGrid baseColor="#FCE7F3" activeColor="#F472B6" dotSize={6} gap={24} />
 
-      {/* Top Navigation */}
-      <nav className="relative z-50 border-b border-gray-200 bg-white/80 backdrop-blur-sm">
-        <div className="px-8 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <div className="w-10 h-10 rounded-xl overflow-hidden shadow-sm border border-pink-100 flex-shrink-0">
-              <img
-                src="/app-logo.jpeg?v=1"
-                alt="PostGenie AI Logo"
-                className="w-full h-full object-cover"
-              />
-            </div>
-            <div className="flex flex-col">
-              <h1 className="text-xl font-black text-gray-900 leading-none">PostGenie AI</h1>
-              <p className="text-[10px] text-pink-600 font-bold uppercase tracking-wider mt-1">AI Magic for Every Post</p>
-            </div>
-          </div>
-          <div className="hidden lg:flex items-center gap-10">
-            <button
-              onClick={() => navigate('/settings/integrations')}
-              className="text-sm font-bold text-gray-600 hover:text-pink-600 transition-all flex items-center gap-2.5 group"
-            >
-              <Share2 className="w-4 h-4 text-gray-400 group-hover:text-pink-600 transition-colors" />
-              Integrations
-            </button>
-            <button
-              onClick={() => navigate('/settings/train')}
-              className="text-sm font-bold text-gray-600 hover:text-pink-600 transition-all flex items-center gap-2.5 group"
-            >
-              <Wand2 className="w-4 h-4 text-gray-400 group-hover:text-pink-600 transition-colors" />
-              Fine Tuning
-            </button>
-            <button
-              onClick={() => window.open('https://docs.postgenie.ai', '_blank')}
-              className="text-sm font-bold text-gray-600 hover:text-pink-600 transition-all flex items-center gap-2.5 group"
-            >
-              <FileText className="w-4 h-4 text-gray-400 group-hover:text-pink-600 transition-colors" />
-              Docs
-            </button>
-          </div>
-
-          <div className="flex items-center gap-8">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => navigate('/settings/integrations')}
-              className="px-8 h-11 rounded-2xl border-pink-100 text-pink-600 font-black hover:bg-pink-50 transition-all shadow-sm"
-            >
-              <Plus className="w-4 h-4 mr-2" />
-              Connect Accounts
-            </Button>
-
-            <button
-              onClick={onLogout}
-              className="flex items-center gap-2 px-4 py-2 text-red-600 hover:bg-red-50 rounded-2xl transition-all font-bold text-sm"
-            >
-              <LogOut className="w-5 h-5" />
-              Log Out
-            </button>
-
-            <div className="w-10 h-10 rounded-2xl bg-pink-50 flex items-center justify-center text-pink-600 border border-pink-100 shadow-sm overflow-hidden">
-              <User className="w-5 h-5" />
-            </div>
-          </div>
-        </div>
-      </nav>
+      <Navbar onLogout={onLogout} />
 
       {/* Canvas Area */}
       <div
@@ -1398,7 +1324,7 @@ const PostGenieAI: React.FC<PostGenieAIProps> = ({ onLogout }) => {
         <AnimatePresence>
           {generatedPosts.map((post, index) => (
             <PlatformCard
-              key={`${post.platform}-${index}`}
+              key={`${post.platform} -${index} `}
               platform={post.platform}
               content={post.content}
               position={post.position}

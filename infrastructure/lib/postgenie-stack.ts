@@ -253,6 +253,26 @@ export class PostGenieStack extends cdk.Stack {
     const loginResource = authResource.addResource('login');
     loginResource.addMethod('POST', new apigateway.LambdaIntegration(loginFunction));
 
+    // User Profile
+    const userProfileFunction = new lambdaNodejs.NodejsFunction(this, 'UserProfileFunction', {
+      runtime: lambda.Runtime.NODEJS_18_X,
+      entry: path.join(__dirname, '../../backend/src/functions/user/profile.ts'),
+      handler: 'handler',
+      role: lambdaRole,
+      environment: {
+        USERS_TABLE: usersTable.tableName,
+        JWT_SECRET: process.env.JWT_SECRET || 'change-me-in-production',
+      },
+      timeout: cdk.Duration.seconds(30),
+      bundling: { minify: true, sourceMap: true },
+    });
+
+    const userResource = api.root.addResource('user');
+    const profileResource = userResource.addResource('profile');
+    profileResource.addMethod('GET', new apigateway.LambdaIntegration(userProfileFunction));
+    profileResource.addMethod('PATCH', new apigateway.LambdaIntegration(userProfileFunction));
+    profileResource.addMethod('DELETE', new apigateway.LambdaIntegration(userProfileFunction));
+
     // Voice - Train
     const trainVoiceFunction = new lambdaNodejs.NodejsFunction(this, 'TrainVoiceFunction', {
       runtime: lambda.Runtime.NODEJS_18_X,
