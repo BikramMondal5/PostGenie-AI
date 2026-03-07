@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Sparkles, Mail, Lock, Loader2, ArrowRight, UserPlus, LogIn, AlertCircle } from 'lucide-react';
+import { Mail, Lock, Loader2, ArrowRight, UserPlus, LogIn, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -79,13 +79,17 @@ const Auth: React.FC<AuthProps> = ({ onAuthSuccess }) => {
                 className="w-full max-w-md z-10"
             >
                 <div className="flex justify-center mb-8">
-                    <div className="flex items-center gap-3">
-                        <div className="p-3 rounded-2xl bg-pink-100 shadow-sm">
-                            <Sparkles className="w-8 h-8 text-pink-600" />
+                    <div className="flex items-center gap-4">
+                        <div className="w-14 h-14 rounded-2xl overflow-hidden shadow-md border border-pink-100">
+                            <img
+                                src="/app-logo.jpeg?v=1"
+                                alt="PostGenie AI Logo"
+                                className="w-full h-full object-cover"
+                            />
                         </div>
                         <div>
-                            <h1 className="text-2xl font-bold text-gray-900">PostGenie AI</h1>
-                            <p className="text-xs text-gray-500 font-medium">AI Magic for Every Post</p>
+                            <h1 className="text-3xl font-black text-gray-900 tracking-tight">PostGenie AI</h1>
+                            <p className="text-xs text-pink-600 font-bold uppercase tracking-widest">AI Magic for Every Post</p>
                         </div>
                     </div>
                 </div>

@@ -4,7 +4,10 @@ import axios from 'axios';
 import { extractTokenFromHeader, verifyToken } from '../../utils/jwt';
 import { successResponse, errorResponse } from '../../utils/response';
 
+import { VoiceProfileRepository } from '../../repositories/VoiceProfileRepository';
+
 const bedrock = new BedrockRuntimeClient({});
+const profileRepo = new VoiceProfileRepository();
 
 export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
     // 1. Authenticate user
@@ -15,11 +18,14 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
         return errorResponse(401, 'Unauthorized: No token provided');
     }
 
+    let decoded;
     try {
-        verifyToken(token);
+        decoded = verifyToken(token);
     } catch (e: any) {
         return errorResponse(401, `Unauthorized: ${e.message}`);
     }
+
+    const userId = decoded.userId;
 
     // 2. Parse request body
     if (!event.body) {
@@ -41,6 +47,12 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
     }
 
     try {
+        // Fetch user voice profiles
+        const userProfiles = await profileRepo.getProfilesByUser(userId);
+        const voiceConfigs = userProfiles.reduce((acc: any, p) => {
+            acc[p.platform] = p.systemInstruction;
+            return acc;
+        }, {});
         // 3. Generate content for platforms via Bedrock
         const generateForPlatform = async (platformName: string, guidelines: string, modelId: string, isRegeneration: boolean = false) => {
             const systemPrompt = `You are an expert social media manager. You create highly engaging, viral, and authentic posts for ${platformName}. ${guidelines}`;
@@ -93,14 +105,14 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
         const shouldGenerateInstagram = !platforms || platforms.includes('instagram');
         const isRegeneration = platforms && platforms.length > 0;
 
-        const linkedinPost = shouldGenerateLinkedIn 
-            ? await generateForPlatform('LinkedIn', 'Keep it professional but conversational. Use engaging hooks, storytelling if applicable, and format with line breaks for readability. Use 3-5 relevant hashtags.', 'us.amazon.nova-lite-v1:0', isRegeneration)
+        const linkedinPost = shouldGenerateLinkedIn
+            ? await generateForPlatform('LinkedIn', `Keep it professional but conversational. Use engaging hooks, storytelling if applicable, and format with line breaks for readability. Use 3-5 relevant hashtags. ${voiceConfigs.linkedin || ''}`, 'us.amazon.nova-lite-v1:0', isRegeneration)
             : null;
-        const twitterPost = shouldGenerateTwitter 
-            ? await generateForPlatform('Twitter/X', 'Keep it concise, punchy, and under 280 characters. Use short sentences, perhaps a thought-provoking question, and 1-2 hashtags.', 'us.amazon.nova-micro-v1:0', isRegeneration)
+        const twitterPost = shouldGenerateTwitter
+            ? await generateForPlatform('Twitter/X', `Keep it concise, punchy, and under 280 characters. Use short sentences, perhaps a thought-provoking question, and 1-2 hashtags. ${voiceConfigs.twitter || ''}`, 'us.amazon.nova-micro-v1:0', isRegeneration)
             : null;
-        const instagramPost = shouldGenerateInstagram 
-            ? await generateForPlatform('Instagram', 'Keep it visually descriptive and lifestyle-focused. Use a catchy opening and write an engaging caption. End with a call to action and plenty of relevant hashtags.', 'us.amazon.nova-pro-v1:0', isRegeneration)
+        const instagramPost = shouldGenerateInstagram
+            ? await generateForPlatform('Instagram', `Keep it visually descriptive and lifestyle-focused. Use a catchy opening and write an engaging caption. End with a call to action and plenty of relevant hashtags. ${voiceConfigs.instagram || ''}`, 'us.amazon.nova-pro-v1:0', isRegeneration)
             : null;
 
         const newPosts = [];

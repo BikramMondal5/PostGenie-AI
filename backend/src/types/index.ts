@@ -31,6 +31,7 @@ export interface VoiceProfile {
   emotionalTone: string[];
   hashtagUsage: number;
   emojiUsage: number;
+  systemInstruction?: string;
   createdAt: string;
   updatedAt: string;
 }

@@ -16,6 +16,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { api } from '@/lib/api';
+import { ResponseModal } from '@/components/ui/ResponseModal';
 
 const Integrations: React.FC = () => {
     const [loading, setLoading] = useState(true);
@@ -25,6 +26,22 @@ const Integrations: React.FC = () => {
         instagram: { connected: false, active: false, lastSynced: null },
         facebook: { connected: false, active: false, lastSynced: null },
     });
+
+    const [modalState, setModalState] = useState<{
+        isOpen: boolean;
+        title: string;
+        message: string;
+        type: "success" | "error" | "info";
+    }>({
+        isOpen: false,
+        title: "",
+        message: "",
+        type: "info",
+    });
+
+    const showResponse = (title: string, message: string, type: "success" | "error" | "info" = "info") => {
+        setModalState({ isOpen: true, title, message, type });
+    };
 
     const platformConfig = {
         linkedin: { name: 'LinkedIn', icon: Linkedin, color: 'text-blue-600', bgColor: 'bg-blue-50' },
@@ -71,7 +88,7 @@ const Integrations: React.FC = () => {
                 window.location.href = data.authUrl;
             }
         } catch (error: any) {
-            alert('Failed to initiate connection: ' + error.message);
+            showResponse("Connection Error", 'Failed to initiate connection: ' + error.message, "error");
         }
     };
 
@@ -80,8 +97,9 @@ const Integrations: React.FC = () => {
         try {
             await api.delete(`/oauth/connections/${platform}`);
             await fetchConnections();
+            showResponse("Disconnected", `Successfully disconnected from ${platform}.`, "success");
         } catch (error: any) {
-            alert('Failed to disconnect: ' + error.message);
+            showResponse("Error", 'Failed to disconnect: ' + error.message, "error");
         }
     };
 
@@ -195,6 +213,14 @@ const Integrations: React.FC = () => {
                     </p>
                 </div>
             </div>
+
+            <ResponseModal
+                isOpen={modalState.isOpen}
+                onClose={() => setModalState(prev => ({ ...prev, isOpen: false }))}
+                title={modalState.title}
+                message={modalState.message}
+                type={modalState.type}
+            />
         </div>
     );
 };

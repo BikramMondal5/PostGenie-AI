@@ -5,8 +5,7 @@ import {
     Share2,
     Wand2,
     User,
-    LogOut,
-    Sparkles
+    LogOut
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -56,7 +55,13 @@ const SettingsLayout: React.FC<SettingsLayoutProps> = ({ onLogout }) => {
                         </Button>
                         <div className="h-6 w-[1px] bg-gray-200" />
                         <div className="flex items-center gap-2">
-                            <Sparkles className="w-5 h-5 text-pink-600" />
+                            <div className="w-8 h-8 rounded-lg overflow-hidden border border-pink-100 shadow-sm">
+                                <img
+                                    src="/app-logo.jpeg?v=1"
+                                    alt="PostGenie Logo"
+                                    className="w-full h-full object-cover"
+                                />
+                            </div>
                             <h1 className="text-lg font-bold text-gray-900">Settings</h1>
                         </div>
                     </div>

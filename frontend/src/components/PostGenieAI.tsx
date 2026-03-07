@@ -13,7 +13,10 @@ import {
   Edit,
   Download,
   Sparkles,
-  LogIn,
+  LogOut,
+  Share2,
+  Wand2,
+  FileText,
   Check,
   Clock,
   ChevronDown,
@@ -31,6 +34,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { api } from "@/lib/api";
+import { ResponseModal } from "@/components/ui/ResponseModal";
 
 const cn = (...classes: (string | undefined | null | false)[]) =>
   classes.filter(Boolean).join(" ");
@@ -746,8 +750,8 @@ const InputNode: React.FC<InputNodeProps> = ({
                 <div className="p-2 rounded-lg bg-pink-50">
                   <Sparkles className="w-5 h-5 text-pink-600" />
                 </div>
-                <h3 className="text-lg font-semibold text-gray-900">
-                  AI Content Generator
+                <h3 className="text-lg font-bold text-gray-900">
+                  AI Content Studio
                 </h3>
               </div>
 
@@ -1064,6 +1068,22 @@ const PostGenieAI: React.FC<PostGenieAIProps> = ({ onLogout }) => {
   const [isInitialCentered, setIsInitialCentered] = useState(false);
   const [inputNodeWidth, setInputNodeWidth] = useState(500);
 
+  const [modalState, setModalState] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    type: "success" | "error" | "info";
+  }>({
+    isOpen: false,
+    title: "",
+    message: "",
+    type: "info",
+  });
+
+  const showResponse = (title: string, message: string, type: "success" | "error" | "info" = "info") => {
+    setModalState({ isOpen: true, title, message, type });
+  };
+
   const handleGenerate = async (prompt: string, images: { [platform: string]: string }) => {
     setIsGenerating(true);
     setOriginalPrompt(prompt); // Store the original prompt for regeneration
@@ -1088,8 +1108,7 @@ const PostGenieAI: React.FC<PostGenieAIProps> = ({ onLogout }) => {
       }
     } catch (error) {
       console.error("Failed to generate posts:", error);
-      // Fallback on error or show toast notification (handled gracefully for now)
-      alert("Failed to generate posts. Please check your connection or backend logic.");
+      showResponse("Generation Error", "Failed to generate posts. Please check your connection or backend logic.", "error");
     } finally {
       setIsGenerating(false);
     }
@@ -1105,7 +1124,6 @@ const PostGenieAI: React.FC<PostGenieAIProps> = ({ onLogout }) => {
     );
   };
 
-
   // Always keep the input node centered
   useEffect(() => {
     if (canvasRef.current) {
@@ -1118,7 +1136,6 @@ const PostGenieAI: React.FC<PostGenieAIProps> = ({ onLogout }) => {
     }
   }, []);
 
-
   const handlePostPublish = async (
     platform: string,
     content: string,
@@ -1128,62 +1145,88 @@ const PostGenieAI: React.FC<PostGenieAIProps> = ({ onLogout }) => {
   ) => {
     try {
       const localDate = new Date(`${date}T${time}`);
-      const response = await api.post("/publish", {
+      const result = await api.post("/publish", {
         platform,
         content,
         imageUrl,
-        scheduledAt: localDate.toISOString()
+        scheduledAt: localDate.toISOString(),
       });
-      if (response && response.data && response.data.success) {
-        if (response.data.scheduled) {
-          alert(`✅ Post scheduled for ${platform} at ${date} ${time}!\n\nYour post will be automatically published at the scheduled time.`);
+
+      if (result.success) {
+        if (result.scheduled) {
+          showResponse(
+            "Post Scheduled",
+            `✅ Post scheduled for ${platform} at ${date} ${time}!\n\nYour post will be automatically published at the scheduled time.`,
+            "success"
+          );
         } else {
-          alert(`Successfully published to ${platform}!`);
+          showResponse(
+            "Post Published",
+            `Successfully published to ${platform}!`,
+            "success"
+          );
         }
-      } else if (response && response.success) {
-        if (response.scheduled) {
-          alert(`✅ Post scheduled for ${platform} at ${date} ${time}!\n\nYour post will be automatically published at the scheduled time.`);
-        } else {
-          alert(`Successfully published to ${platform}!`);
-        }
+      } else {
+        showResponse(
+          "Publishing Error",
+          result.message || `Failed to publish to ${platform}.`,
+          "error"
+        );
       }
     } catch (error: any) {
-      console.error("Publishing failed:", error);
-      alert(error.message || `Failed to publish to ${platform}. Please ensure your account is connected in Settings.`);
+      console.error("Failed to publish post:", error);
+      showResponse(
+        "Publishing Error",
+        error.message ||
+        `Failed to publish to ${platform}. Please ensure your account is connected in Settings.`,
+        "error"
+      );
     }
   };
 
   const handlePostNow = async (platform: string, content: string, imageUrl?: string) => {
     try {
-      const response = await api.post("/publish", {
+      const result = await api.post("/publish", {
         platform,
         content,
-        imageUrl
+        imageUrl,
         // intentionally omitting scheduledAt so it posts immediately
       });
-      if (response && response.data && response.data.success) {
-        alert(`Successfully posted to ${platform}!`);
-      } else if (response && response.success) {
-        alert(`Successfully posted to ${platform}!`);
+
+      if (result.success) {
+        showResponse("Success", `Successfully posted to ${platform}!`, "success");
+      } else {
+        showResponse("Error", `Failed to post to ${platform}.`, "error");
       }
     } catch (error: any) {
-      console.error("Posting failed:", error);
-      alert(error.message || `Failed to post to ${platform}. Please ensure your account is connected in Settings.`);
+      console.error("Failed to post now:", error);
+      showResponse(
+        "Post Failed",
+        error.message ||
+        `Failed to post to ${platform}. Please ensure your account is connected in Settings.`,
+        "error"
+      );
     }
   };
 
-  const handleRegeneratePlatform = async (platform: string, originalPrompt: string, index: number) => {
+  const handleRegeneratePlatform = async (
+    platform: string,
+    originalPrompt: string,
+    index: number
+  ) => {
     if (!originalPrompt) {
-      alert("Cannot regenerate: original prompt not found. Please generate posts first.");
+      showResponse(
+        "Missing Prompt",
+        "Cannot regenerate: original prompt not found. Please generate posts first.",
+        "info"
+      );
       return;
     }
 
     // Set loading state for this specific card
     setGeneratedPosts((prev) =>
       prev.map((post, i) =>
-        i === index
-          ? { ...post, content: "Regenerating..." }
-          : post
+        i === index ? { ...post, content: "Regenerating..." } : post
       )
     );
 
@@ -1191,32 +1234,39 @@ const PostGenieAI: React.FC<PostGenieAIProps> = ({ onLogout }) => {
       // Call backend to regenerate for specific platform
       const response = await api.post("/content/generate", {
         prompt: originalPrompt,
-        platforms: [platform]
+        platforms: [platform],
       });
 
-      if (response && response.data && response.data.posts && response.data.posts.length > 0) {
+      if (
+        response &&
+        response.data &&
+        response.data.posts &&
+        response.data.posts.length > 0
+      ) {
         // Update only the specific post
         setGeneratedPosts((prev) =>
           prev.map((post, i) =>
-            i === index
-              ? { ...post, content: response.data.posts[0].content }
-              : post
+            i === index ? { ...post, content: response.data.posts[0].content } : post
           )
         );
       } else {
-        // Restore original content if regeneration fails
-        alert("Failed to regenerate post. No content returned.");
+        showResponse(
+          "Regeneration Failed",
+          "Failed to regenerate post. No content returned.",
+          "error"
+        );
       }
     } catch (error) {
       console.error("Failed to regenerate post:", error);
-      alert("Failed to regenerate post. Please try again.");
+      showResponse(
+        "Regeneration Failed",
+        "Failed to regenerate post. Please try again.",
+        "error"
+      );
     }
   };
 
-  const updateCardPosition = (
-    index: number,
-    position: { x: number; y: number }
-  ) => {
+  const updateCardPosition = (index: number, position: { x: number; y: number }) => {
     setGeneratedPosts((prev) =>
       prev.map((post, i) => (i === index ? { ...post, position } : post))
     );
@@ -1243,29 +1293,64 @@ const PostGenieAI: React.FC<PostGenieAIProps> = ({ onLogout }) => {
 
       {/* Top Navigation */}
       <nav className="relative z-50 border-b border-gray-200 bg-white/80 backdrop-blur-sm">
-        <div className="px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-pink-100">
-              <Sparkles className="w-6 h-6 text-pink-600" />
+        <div className="px-8 py-4 flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <div className="w-10 h-10 rounded-xl overflow-hidden shadow-sm border border-pink-100 flex-shrink-0">
+              <img
+                src="/app-logo.jpeg?v=1"
+                alt="PostGenie AI Logo"
+                className="w-full h-full object-cover"
+              />
             </div>
-            <div>
-              <h1 className="text-xl font-bold text-gray-900">PostGenie AI</h1>
-              <p className="text-xs text-gray-600">AI Magic for Every Post</p>
+            <div className="flex flex-col">
+              <h1 className="text-xl font-black text-gray-900 leading-none">PostGenie AI</h1>
+              <p className="text-[10px] text-pink-600 font-bold uppercase tracking-wider mt-1">AI Magic for Every Post</p>
             </div>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="hidden lg:flex items-center gap-10">
+            <button
+              onClick={() => navigate('/settings/integrations')}
+              className="text-sm font-bold text-gray-600 hover:text-pink-600 transition-all flex items-center gap-2.5 group"
+            >
+              <Share2 className="w-4 h-4 text-gray-400 group-hover:text-pink-600 transition-colors" />
+              Integrations
+            </button>
+            <button
+              onClick={() => navigate('/settings/train')}
+              className="text-sm font-bold text-gray-600 hover:text-pink-600 transition-all flex items-center gap-2.5 group"
+            >
+              <Wand2 className="w-4 h-4 text-gray-400 group-hover:text-pink-600 transition-colors" />
+              Fine Tuning
+            </button>
+            <button
+              onClick={() => window.open('https://docs.postgenie.ai', '_blank')}
+              className="text-sm font-bold text-gray-600 hover:text-pink-600 transition-all flex items-center gap-2.5 group"
+            >
+              <FileText className="w-4 h-4 text-gray-400 group-hover:text-pink-600 transition-colors" />
+              Docs
+            </button>
+          </div>
+
+          <div className="flex items-center gap-8">
             <Button
               variant="outline"
               size="sm"
-              onClick={() => navigate('/settings')}
+              onClick={() => navigate('/settings/integrations')}
+              className="px-8 h-11 rounded-2xl border-pink-100 text-pink-600 font-black hover:bg-pink-50 transition-all shadow-sm"
             >
               <Plus className="w-4 h-4 mr-2" />
               Connect Accounts
             </Button>
-            <Button variant="ghost" size="icon" onClick={onLogout}>
-              <LogIn className="w-5 h-5 text-gray-700 hover:text-pink-600 rotate-180" />
-            </Button>
-            <div className="w-8 h-8 rounded-full bg-pink-100 flex items-center justify-center text-pink-600">
+
+            <button
+              onClick={onLogout}
+              className="flex items-center gap-2 px-4 py-2 text-red-600 hover:bg-red-50 rounded-2xl transition-all font-bold text-sm"
+            >
+              <LogOut className="w-5 h-5" />
+              Log Out
+            </button>
+
+            <div className="w-10 h-10 rounded-2xl bg-pink-50 flex items-center justify-center text-pink-600 border border-pink-100 shadow-sm overflow-hidden">
               <User className="w-5 h-5" />
             </div>
           </div>
@@ -1349,6 +1434,14 @@ const PostGenieAI: React.FC<PostGenieAIProps> = ({ onLogout }) => {
           </motion.div>
         )}
       </div>
+
+      <ResponseModal
+        isOpen={modalState.isOpen}
+        onClose={() => setModalState((prev) => ({ ...prev, isOpen: false }))}
+        title={modalState.title}
+        message={modalState.message}
+        type={modalState.type}
+      />
     </div>
   );
 };

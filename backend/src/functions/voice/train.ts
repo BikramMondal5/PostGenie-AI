@@ -43,20 +43,41 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
         const { userId } = decoded;
 
         const body = JSON.parse(event.body || '{}');
-        const { platform, content } = body;
+        const { platform, content, systemInstruction } = body;
 
-        if (!platform || !content) {
+        if (!platform || (!content && !systemInstruction)) {
             return {
                 statusCode: 400,
                 headers: getCorsHeaders(),
-                body: JSON.stringify({ message: 'Platform and content are required' }),
+                body: JSON.stringify({ message: 'Platform and either content or systemInstruction are required' }),
             };
         }
 
-        console.log(`Analyzing voice for user ${userId} on ${platform}`);
-        const analyzedProfile = await analysisService.analyzeVoice(userId, platform, content);
+        let profileToSave: any;
 
-        const savedProfile = await profileRepo.upsertProfile(analyzedProfile);
+        if (systemInstruction) {
+            console.log(`Setting direct system instruction for user ${userId} on ${platform}`);
+            // Get existing or create basic profile
+            const existing = await profileRepo.getProfileByUserPlatform(userId, platform);
+            profileToSave = {
+                userId,
+                platform,
+                systemInstruction,
+                tone: existing?.tone || 'casual',
+                frequentWords: existing?.frequentWords || [],
+                vocabularyComplexity: existing?.vocabularyComplexity || 0.5,
+                avgSentenceLength: existing?.avgSentenceLength || 15,
+                commonPhrases: existing?.commonPhrases || [],
+                emotionalTone: existing?.emotionalTone || ['neutral'],
+                hashtagUsage: existing?.hashtagUsage || 0.2,
+                emojiUsage: existing?.emojiUsage || 0.2
+            };
+        } else {
+            console.log(`Analyzing voice for user ${userId} on ${platform}`);
+            profileToSave = await analysisService.analyzeVoice(userId, platform, content);
+        }
+
+        const savedProfile = await profileRepo.upsertProfile(profileToSave);
 
         return {
             statusCode: 200,
