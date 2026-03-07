@@ -5,7 +5,8 @@
   "private": true,
   "workspaces": [
     "frontend",
-    "infrastructure"
+    "infrastructure",
+    "backend"
   ],
   "scripts": {
     "frontend": "npm run dev --workspace=frontend",

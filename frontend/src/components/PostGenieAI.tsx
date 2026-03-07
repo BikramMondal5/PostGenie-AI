@@ -526,6 +526,7 @@ const PlatformCard: React.FC<PlatformCardProps> = ({
 interface InputNodeProps {
   position: { x: number; y: number };
   onGenerate: (prompt: string, images: { [platform: string]: string }) => void;
+  onImageUpdate: (platform: string, imageUrl: string | null) => void;
   isGenerating: boolean;
   onPositionChange?: (pos: { x: number; y: number }) => void;
 }
@@ -533,6 +534,7 @@ interface InputNodeProps {
 const InputNode: React.FC<InputNodeProps> = ({
   position,
   onGenerate,
+  onImageUpdate,
   isGenerating,
   onPositionChange,
 }) => {
@@ -677,6 +679,7 @@ const InputNode: React.FC<InputNodeProps> = ({
     setConfirmedImages(prev => ({ ...prev, [platform]: null }));
     setPreviewImages(prev => ({ ...prev, [platform]: null }));
     setUploadedImages(prev => ({ ...prev, [platform]: null }));
+    onImageUpdate(platform, null);
   };
 
   return (
@@ -977,7 +980,10 @@ const InputNode: React.FC<InputNodeProps> = ({
                                       onClick={() => {
                                         // Confirm the uploaded preview
                                         const imageUrl = previewImages[platformKey];
-                                        if (imageUrl) setConfirmedImages(prev => ({ ...prev, [platformKey]: imageUrl }));
+                                        if (imageUrl) {
+                                          setConfirmedImages(prev => ({ ...prev, [platformKey]: imageUrl }));
+                                          onImageUpdate(platformKey, imageUrl);
+                                        }
                                       }}
                                     >
                                       <Check className="w-3 h-3 mr-1" />
@@ -1089,6 +1095,17 @@ const PostGenieAI: React.FC<PostGenieAIProps> = ({ onLogout }) => {
     }
   };
 
+  const handleImageUpdate = (platform: string, imageUrl: string | null) => {
+    setGeneratedPosts((prev) =>
+      prev.map((post) =>
+        post.platform === platform
+          ? { ...post, imageUrl: imageUrl || undefined }
+          : post
+      )
+    );
+  };
+
+
   // Always keep the input node centered
   useEffect(() => {
     if (canvasRef.current) {
@@ -1106,13 +1123,15 @@ const PostGenieAI: React.FC<PostGenieAIProps> = ({ onLogout }) => {
     platform: string,
     content: string,
     date: string,
-    time: string
+    time: string,
+    imageUrl?: string
   ) => {
     try {
       const localDate = new Date(`${date}T${time}`);
       const response = await api.post("/publish", {
         platform,
         content,
+        imageUrl,
         scheduledAt: localDate.toISOString()
       });
       if (response && response.data && response.data.success) {
@@ -1272,6 +1291,7 @@ const PostGenieAI: React.FC<PostGenieAIProps> = ({ onLogout }) => {
         <InputNode
           position={inputNodePosition}
           onGenerate={handleGenerate}
+          onImageUpdate={handleImageUpdate}
           isGenerating={isGenerating}
           onPositionChange={(pos) => {
             setInputNodePosition(pos);
@@ -1300,7 +1320,7 @@ const PostGenieAI: React.FC<PostGenieAIProps> = ({ onLogout }) => {
                 console.log("Copied to clipboard");
               }}
               onExport={() => console.log("Exported", post.platform)}
-              onSchedule={(content, date, time) => handlePostPublish(post.platform, content, date, time)}
+              onSchedule={(content, date, time) => handlePostPublish(post.platform, content, date, time, post.imageUrl)}
               onPost={(content, imageUrl) => handlePostNow(post.platform, content, imageUrl)}
               imageUrl={post.imageUrl}
             />

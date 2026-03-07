@@ -49,10 +49,10 @@ async function publishScheduledPost(post: ScheduledPost): Promise<void> {
     // Publish based on platform
     switch (post.platform) {
         case 'twitter':
-            await publishToTwitter(connection.accessToken, post.content);
+            await publishToTwitter(connection.accessToken, post.content, post.imageUrl);
             break;
         case 'linkedin':
-            await publishToLinkedIn(connection.accessToken, post.content);
+            await publishToLinkedIn(connection.accessToken, post.content, post.imageUrl);
             break;
         case 'instagram':
             throw new Error('Instagram posting not yet implemented');
@@ -61,10 +61,44 @@ async function publishScheduledPost(post: ScheduledPost): Promise<void> {
     }
 }
 
-async function publishToTwitter(accessToken: string, text: string) {
+async function publishToTwitter(accessToken: string, text: string, imageUrl?: string) {
+    let mediaIds: string[] = [];
+
+    if (imageUrl && imageUrl.startsWith('data:image')) {
+        console.log('Twitter: Uploading image...');
+        try {
+            // Extract base64 content
+            const base64Data = imageUrl.replace(/^data:image\/\w+;base64,/, '');
+
+            // Twitter v1.1 Media Upload
+            const uploadRes = await axios.post(
+                'https://upload.twitter.com/1.1/media/upload.json',
+                new URLSearchParams({ media_data: base64Data }).toString(),
+                {
+                    headers: {
+                        Authorization: `Bearer ${accessToken}`,
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    }
+                }
+            );
+
+            if (uploadRes.data && uploadRes.data.media_id_string) {
+                mediaIds.push(uploadRes.data.media_id_string);
+                console.log('Twitter: Image uploaded successfully, media_id:', uploadRes.data.media_id_string);
+            }
+        } catch (uploadError: any) {
+            console.error('Twitter media upload failed:', uploadError.response?.data || uploadError.message);
+        }
+    }
+
+    const tweetPayload: any = { text };
+    if (mediaIds.length > 0) {
+        tweetPayload.media = { media_ids: mediaIds };
+    }
+
     const response = await axios.post(
         'https://api.twitter.com/2/tweets',
-        { text },
+        tweetPayload,
         {
             headers: {
                 Authorization: `Bearer ${accessToken}`,
@@ -75,18 +109,63 @@ async function publishToTwitter(accessToken: string, text: string) {
     return response.data;
 }
 
-async function publishToLinkedIn(accessToken: string, text: string) {
-    // Get user profile
-    const profileRes = await axios.get('https://api.linkedin.com/v2/userinfo', {
-        headers: { Authorization: `Bearer ${accessToken}` }
-    });
+async function publishToLinkedIn(accessToken: string, text: string, imageUrl?: string) {
+    try {
+        // Get user profile
+        const profileRes = await axios.get('https://api.linkedin.com/v2/userinfo', {
+            headers: { Authorization: `Bearer ${accessToken}` }
+        });
 
-    const userUrn = `urn:li:person:${profileRes.data.sub}`;
+        if (!profileRes.data || !profileRes.data.sub) {
+            throw new Error('Could not find LinkedIn user ID (sub)');
+        }
 
-    // Post share
-    const response = await axios.post(
-        'https://api.linkedin.com/v2/posts',
-        {
+        const userUrn = `urn:li:person:${profileRes.data.sub}`;
+
+        let imageUrn: string | null = null;
+
+        if (imageUrl && imageUrl.startsWith('data:image')) {
+            console.log('LinkedIn: Initializing image upload...');
+            try {
+                // Register upload via v2/images API
+                const registerRes = await axios.post(
+                    'https://api.linkedin.com/v2/images?action=initializeUpload',
+                    {
+                        initializeUploadRequest: {
+                            owner: userUrn
+                        }
+                    },
+                    {
+                        headers: {
+                            Authorization: `Bearer ${accessToken}`,
+                            'Content-Type': 'application/json'
+                        }
+                    }
+                );
+
+                const uploadUrl = registerRes.data.value.uploadUrl;
+                imageUrn = registerRes.data.value.image;
+
+                console.log('LinkedIn: Uploading binary data...');
+                // Convert base64 to binary
+                const base64Data = imageUrl.replace(/^data:image\/\w+;base64,/, '');
+                const buffer = Buffer.from(base64Data, 'base64');
+
+                await axios.put(uploadUrl, buffer, {
+                    headers: {
+                        'Content-Type': 'application/octet-stream'
+                    }
+                });
+
+                console.log('LinkedIn: Image uploaded successfully, imageUrn:', imageUrn);
+            } catch (uploadError: any) {
+                console.error('LinkedIn media upload failed:', uploadError.response?.data || uploadError.message);
+                imageUrn = null;
+            }
+        }
+
+        // Post share
+        const postPayload: any = {
             author: userUrn,
             commentary: text,
             visibility: 'PUBLIC',
@@ -96,14 +175,32 @@ async function publishToLinkedIn(accessToken: string, text: string) {
                 thirdPartyDistributionChannels: []
             },
             lifecycleState: 'PUBLISHED'
-        },
-        {
-            headers: {
-                Authorization: `Bearer ${accessToken}`,
-                'Content-Type': 'application/json',
-                'X-Restli-Protocol-Version': '2.0.0'
-            }
+        };
+
+        if (imageUrn) {
+            postPayload.content = {
+                media: {
+                    title: 'Post Image',
+                    id: imageUrn
+                }
+            };
         }
-    );
-    return response.data;
+
+        const response = await axios.post(
+            'https://api.linkedin.com/v2/posts',
+            postPayload,
+            {
+                headers: {
+                    Authorization: `Bearer ${accessToken}`,
+                    'Content-Type': 'application/json',
+                    'X-Restli-Protocol-Version': '2.0.0'
+                }
+            }
+        );
+        return response.data;
+    } catch (error: any) {
+        console.error('LinkedIn scheduler direct error:', error.response?.data || error.message);
+        throw error;
+    }
 }
+

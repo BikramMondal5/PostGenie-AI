@@ -71,7 +71,7 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
     if (scheduledAt) {
         const scheduledTime = new Date(scheduledAt);
         const now = new Date();
-        
+
         if (scheduledTime <= now) {
             return {
                 statusCode: 400,
@@ -91,7 +91,7 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
             });
 
             console.log(`Scheduled post created: ${scheduledPost.postId} for ${platform} at ${scheduledAt}`);
-            
+
             return {
                 statusCode: 200,
                 headers: getCorsHeaders(),
@@ -108,10 +108,10 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
             return {
                 statusCode: 500,
                 headers: getCorsHeaders(),
-                body: JSON.stringify({ 
-                    success: false, 
+                body: JSON.stringify({
+                    success: false,
                     message: 'Failed to schedule post',
-                    error: error.message 
+                    error: error.message
                 })
             };
         }
@@ -136,13 +136,13 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
         switch (platform) {
             case 'twitter':
                 try {
-                    publishResult = await publishToTwitter(connection.accessToken, content);
+                    publishResult = await publishToTwitter(connection.accessToken, content, imageUrl);
                 } catch (twitterError: any) {
                     if (twitterError.response?.status === 401 && connection.refreshToken) {
                         console.log('Twitter token expired, attempting refresh...');
                         try {
                             const newAccessToken = await refreshTwitterToken(userId, connection.refreshToken);
-                            publishResult = await publishToTwitter(newAccessToken, content);
+                            publishResult = await publishToTwitter(newAccessToken, content, imageUrl);
                         } catch (refreshError: any) {
                             console.error('Twitter refresh failed:', refreshError.response?.data || refreshError.message);
                             throw twitterError; // throw original 401 if refresh fails
@@ -153,8 +153,7 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
                 }
                 break;
             case 'linkedin':
-                // Need to get urn from connection or API
-                publishResult = await publishToLinkedIn(connection.accessToken, content);
+                publishResult = await publishToLinkedIn(connection.accessToken, content, imageUrl);
                 break;
             default:
                 return {
@@ -229,11 +228,46 @@ async function refreshTwitterToken(userId: string, refreshToken: string) {
     return access_token;
 }
 
-async function publishToTwitter(accessToken: string, text: string) {
+async function publishToTwitter(accessToken: string, text: string, imageUrl?: string) {
     try {
+        let mediaIds: string[] = [];
+
+        if (imageUrl && imageUrl.startsWith('data:image')) {
+            console.log('Twitter: Uploading image...');
+            try {
+                // Extract base64 content
+                const base64Data = imageUrl.replace(/^data:image\/\w+;base64,/, '');
+
+                // Twitter v1.1 Media Upload
+                const uploadRes = await axios.post(
+                    'https://upload.twitter.com/1.1/media/upload.json',
+                    new URLSearchParams({ media_data: base64Data }).toString(),
+                    {
+                        headers: {
+                            Authorization: `Bearer ${accessToken}`,
+                            'Content-Type': 'application/x-www-form-urlencoded',
+                        }
+                    }
+                );
+
+                if (uploadRes.data && uploadRes.data.media_id_string) {
+                    mediaIds.push(uploadRes.data.media_id_string);
+                    console.log('Twitter: Image uploaded successfully, media_id:', uploadRes.data.media_id_string);
+                }
+            } catch (uploadError: any) {
+                console.error('Twitter media upload failed:', uploadError.response?.data || uploadError.message);
+                // Continue with just text if image upload fails, or we could throw
+            }
+        }
+
+        const tweetPayload: any = { text };
+        if (mediaIds.length > 0) {
+            tweetPayload.media = { media_ids: mediaIds };
+        }
+
         const response = await axios.post(
             'https://api.twitter.com/2/tweets',
-            { text },
+            tweetPayload,
             {
                 headers: {
                     Authorization: `Bearer ${accessToken}`,
@@ -243,24 +277,71 @@ async function publishToTwitter(accessToken: string, text: string) {
         );
         return response.data;
     } catch (error: any) {
-        // Handle specifically if we want to retry outside
         throw error;
     }
 }
 
-async function publishToLinkedIn(accessToken: string, text: string) {
-    // 1. Get user profile to find their URN
-    const profileRes = await axios.get('https://api.linkedin.com/v2/userinfo', {
-        headers: { Authorization: `Bearer ${accessToken}` }
-    });
+async function publishToLinkedIn(accessToken: string, text: string, imageUrl?: string) {
+    try {
+        // 1. Get user profile
+        console.log('LinkedIn: Fetching user profile...');
+        const profileRes = await axios.get('https://api.linkedin.com/v2/userinfo', {
+            headers: { Authorization: `Bearer ${accessToken}` }
+        });
 
-    // In OpenID Connect userinfo, sub is the unique identifier
-    const userUrn = `urn:li:person:${profileRes.data.sub}`;
+        if (!profileRes.data || !profileRes.data.sub) {
+            throw new Error('Could not find LinkedIn user ID (sub)');
+        }
 
-    // 2. Post share
-    const response = await axios.post(
-        'https://api.linkedin.com/v2/posts',
-        {
+        const userUrn = `urn:li:person:${profileRes.data.sub}`;
+        console.log('LinkedIn: User URN:', userUrn);
+
+        let imageUrn: string | null = null;
+
+        if (imageUrl && imageUrl.startsWith('data:image')) {
+            console.log('LinkedIn: Initializing image upload...');
+            try {
+                // Initialize upload via v2/images API (newer, works with v2/posts)
+                const registerRes = await axios.post(
+                    'https://api.linkedin.com/v2/images?action=initializeUpload',
+                    {
+                        initializeUploadRequest: {
+                            owner: userUrn
+                        }
+                    },
+                    {
+                        headers: {
+                            Authorization: `Bearer ${accessToken}`,
+                            'Content-Type': 'application/json'
+                        }
+                    }
+                );
+
+                const uploadUrl = registerRes.data.value.uploadUrl;
+                imageUrn = registerRes.data.value.image;
+
+                console.log('LinkedIn: Uploading image to pre-signed URL...');
+                // Convert base64 to binary
+                const base64Data = imageUrl.replace(/^data:image\/\w+;base64,/, '');
+                const buffer = Buffer.from(base64Data, 'base64');
+
+                // Important: NO Authorization header for the pre-signed URL
+                await axios.put(uploadUrl, buffer, {
+                    headers: {
+                        'Content-Type': 'application/octet-stream'
+                    }
+                });
+
+                console.log('LinkedIn: Image uploaded successfully, imageUrn:', imageUrn);
+            } catch (uploadError: any) {
+                console.error('LinkedIn media upload failed:', uploadError.response?.data || uploadError.message);
+                // Continue with just text if image fails
+                imageUrn = null;
+            }
+        }
+
+        // 2. Create the post
+        const postPayload: any = {
             author: userUrn,
             commentary: text,
             visibility: 'PUBLIC',
@@ -270,14 +351,33 @@ async function publishToLinkedIn(accessToken: string, text: string) {
                 thirdPartyDistributionChannels: []
             },
             lifecycleState: 'PUBLISHED'
-        },
-        {
-            headers: {
-                Authorization: `Bearer ${accessToken}`,
-                'Content-Type': 'application/json',
-                'X-Restli-Protocol-Version': '2.0.0'
-            }
+        };
+
+        if (imageUrn) {
+            postPayload.content = {
+                media: {
+                    title: 'Post Image',
+                    id: imageUrn
+                }
+            };
         }
-    );
-    return response.data;
+
+        console.log('LinkedIn: Creating post...');
+        const response = await axios.post(
+            'https://api.linkedin.com/v2/posts',
+            postPayload,
+            {
+                headers: {
+                    Authorization: `Bearer ${accessToken}`,
+                    'Content-Type': 'application/json',
+                    'X-Restli-Protocol-Version': '2.0.0'
+                }
+            }
+        );
+        return response.data;
+    } catch (error: any) {
+        console.error('LinkedIn publishToLinkedIn function error:', error.response?.data || error.message);
+        throw error;
+    }
 }
+
