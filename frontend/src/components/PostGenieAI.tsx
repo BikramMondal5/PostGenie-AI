@@ -1256,24 +1256,41 @@ const PostGenieAI: React.FC<PostGenieAIProps> = ({ onLogout }) => {
 
   const handlePostNow = async (platform: string, content: string, imageUrl?: string) => {
     try {
-      const result = await api.post("/publish", {
+      // Set a timeout for the request (25 seconds to be safe with API Gateway's 29s limit)
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Request timeout - posting may still be in progress')), 25000)
+      );
+
+      const postPromise = api.post("/publish", {
         platform,
         content,
         imageUrl,
         // intentionally omitting scheduledAt so it posts immediately
       });
 
+      const result = await Promise.race([postPromise, timeoutPromise]) as any;
+
       if (result.success) {
-        showResponse("Success", `Successfully posted to ${platform} !`, "success");
+        showResponse("Success", `Successfully posted to ${platform}!`, "success");
       } else {
-        showResponse("Error", `Failed to post to ${platform}.`, "error");
+        showResponse("Error", result.message || `Failed to post to ${platform}.`, "error");
       }
     } catch (error: any) {
       console.error("Failed to post now:", error);
+      
+      // Provide more specific error messages
+      let errorMessage = error.message;
+      if (error.message?.includes('timeout')) {
+        errorMessage = `The request is taking longer than expected. Your post may still be published. Please check ${platform} to verify.`;
+      } else if (error.message?.includes('Could not connect')) {
+        errorMessage = `Unable to reach the server. Please check your connection and try again.`;
+      } else if (!errorMessage) {
+        errorMessage = `Failed to post to ${platform}. Please ensure your account is connected in Settings.`;
+      }
+      
       showResponse(
         "Post Failed",
-        error.message ||
-        `Failed to post to ${platform}. Please ensure your account is connected in Settings.`,
+        errorMessage,
         "error"
       );
     }

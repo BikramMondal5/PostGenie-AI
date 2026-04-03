@@ -45,7 +45,7 @@ const Integrations: React.FC = () => {
 
     const platformConfig = {
         linkedin: { name: 'LinkedIn', icon: Linkedin, color: 'text-blue-600', bgColor: 'bg-blue-50', status: 'Free' },
-        twitter: { name: 'X / Twitter', icon: Twitter, color: 'text-black', bgColor: 'bg-black/5', status: 'Paid. Need API' },
+        twitter: { name: 'X / Twitter', icon: Twitter, color: 'text-black', bgColor: 'bg-black/5', status: 'Free' },
         instagram: { name: 'Instagram', icon: Instagram, color: 'text-pink-600', bgColor: 'bg-pink-50', status: 'Paid. Need API' },
         facebook: { name: 'Facebook', icon: Facebook, color: 'text-blue-700', bgColor: 'bg-blue-50', status: 'Paid. Need API' },
     };
@@ -105,7 +105,7 @@ const Integrations: React.FC = () => {
     }, []);
 
     const handleConnect = async (platform: string) => {
-        if (platform === 'linkedin') {
+        if (platform === 'linkedin' || platform === 'twitter') {
             try {
                 const data = await api.get(`/oauth/initiate?platform=${platform}`);
                 if (data.authUrl) {
@@ -140,8 +140,8 @@ const Integrations: React.FC = () => {
                 [key]: { ...prev[key], active: newActive }
             }));
 
-            // In a real app, we'd call an API to sync this state
-            // await api.patch(`/oauth/connections/${key}`, { isActive: newActive });
+            // Call API to persist the state
+            await api.patch(`/oauth/connections/${key}`, { isActive: newActive });
         } catch (error: any) {
             // Revert on error
             setPlatforms(prev => ({

@@ -11,7 +11,7 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
             'Access-Control-Allow-Origin': reqOrigin,
             'Access-Control-Allow-Credentials': 'true',
             'Access-Control-Allow-Headers': 'Content-Type,Authorization',
-            'Access-Control-Allow-Methods': 'GET,POST,OPTIONS',
+            'Access-Control-Allow-Methods': 'GET,POST,PATCH,OPTIONS',
         };
     };
 
@@ -30,22 +30,35 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
         const decoded = verifyToken(token);
         const userId = decoded.userId;
 
-        const connections = await connectionRepo.getConnectionsByUser(userId);
+        const platform = event.pathParameters?.platform;
+        if (!platform) {
+            return {
+                statusCode: 400,
+                headers: getCorsHeaders(),
+                body: JSON.stringify({ message: 'Platform is required' }),
+            };
+        }
 
-        // Return all connections with isActive status, strip sensitive data
-        const sanitizedConnections = connections.map(c => ({
-            platform: c.platform,
-            connectedAt: c.connectedAt,
-            isActive: c.isActive,
-        }));
+        const body = JSON.parse(event.body || '{}');
+        const { isActive } = body;
+
+        if (typeof isActive !== 'boolean') {
+            return {
+                statusCode: 400,
+                headers: getCorsHeaders(),
+                body: JSON.stringify({ message: 'isActive must be a boolean' }),
+            };
+        }
+
+        await connectionRepo.updateConnectionStatus(userId, platform, isActive);
 
         return {
             statusCode: 200,
             headers: getCorsHeaders(),
-            body: JSON.stringify({ connections: sanitizedConnections }),
+            body: JSON.stringify({ message: 'Connection status updated successfully' }),
         };
     } catch (error) {
-        console.error('List Connections Error:', error);
+        console.error('Update Connection Error:', error);
         return {
             statusCode: 500,
             headers: getCorsHeaders(),

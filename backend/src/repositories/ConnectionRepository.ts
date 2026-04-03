@@ -99,4 +99,22 @@ export class ConnectionRepository {
             })
         );
     }
+
+    /**
+     * Update connection active status
+     */
+    async updateConnectionStatus(userId: string, platform: string, isActive: boolean): Promise<void> {
+        const connectionId = `${userId}#${platform}`;
+
+        await dynamoDb.send(
+            new UpdateCommand({
+                TableName: TABLES.CONNECTIONS,
+                Key: { connectionId },
+                UpdateExpression: 'SET isActive = :isActive',
+                ExpressionAttributeValues: {
+                    ':isActive': isActive,
+                },
+            })
+        );
+    }
 }

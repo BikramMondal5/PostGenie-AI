@@ -397,7 +397,7 @@ export class PostGenieStack extends cdk.Stack {
       environment: {
         CONNECTIONS_TABLE: connectionsTable.tableName,
         ENCRYPTION_KEY: process.env.ENCRYPTION_KEY || 'postgenie-secret-key-32-char-!!!',
-        FRONTEND_URL: process.env.FRONTEND_URL || 'http://localhost:3000',
+        FRONTEND_URL: `https://${distribution.distributionDomainName}`,
       },
       timeout: cdk.Duration.seconds(30),
       bundling: { minify: true, sourceMap: true },
@@ -446,6 +446,22 @@ export class PostGenieStack extends cdk.Stack {
     const platformConnectionsResource = connectionsResource.addResource('{platform}');
     platformConnectionsResource.addMethod('DELETE', new apigateway.LambdaIntegration(disconnectOauthFunction));
 
+    // OAuth - Update Connection Status
+    const updateConnectionFunction = new lambdaNodejs.NodejsFunction(this, 'UpdateConnectionFunction', {
+      runtime: lambda.Runtime.NODEJS_18_X,
+      entry: path.join(__dirname, '../../backend/src/functions/oauth/updateConnection.ts'),
+      handler: 'handler',
+      role: lambdaRole,
+      environment: {
+        CONNECTIONS_TABLE: connectionsTable.tableName,
+        JWT_SECRET: process.env.JWT_SECRET || 'change-me-in-production',
+      },
+      timeout: cdk.Duration.seconds(30),
+      bundling: { minify: true, sourceMap: true },
+    });
+
+    platformConnectionsResource.addMethod('PATCH', new apigateway.LambdaIntegration(updateConnectionFunction));
+
     // Publishing
     const publishPostFunction = new lambdaNodejs.NodejsFunction(this, 'PublishPostFunction', {
       runtime: lambda.Runtime.NODEJS_18_X,
@@ -459,7 +475,7 @@ export class PostGenieStack extends cdk.Stack {
         ENCRYPTION_KEY: process.env.ENCRYPTION_KEY || 'postgenie-secret-key-32-char-!!!',
         MEDIA_BUCKET: mediaBucket.bucketName,
       },
-      timeout: cdk.Duration.seconds(30),
+      timeout: cdk.Duration.seconds(60),
       bundling: { minify: true, sourceMap: true },
     });
 

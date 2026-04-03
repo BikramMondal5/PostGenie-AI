@@ -176,14 +176,22 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
     } catch (error: any) {
         const errorData = error.response?.data;
         const errorMessage = typeof errorData === 'object' ? JSON.stringify(errorData) : (errorData || error.message);
-        console.error(`Publishing to ${platform} failed:`, errorMessage);
+        const statusCode = error.response?.status || 500;
+        
+        console.error(`Publishing to ${platform} failed:`, {
+            status: statusCode,
+            message: errorMessage,
+            error: error.message,
+            stack: error.stack
+        });
 
         return {
-            statusCode: 500,
+            statusCode: statusCode >= 400 && statusCode < 600 ? statusCode : 500,
             headers: getCorsHeaders(),
             body: JSON.stringify({
                 success: false,
                 message: `Failed to publish to ${platform}: ${errorMessage}`,
+                error: error.message
             })
         };
     }
@@ -294,11 +302,14 @@ async function publishToTwitter(accessToken: string, text: string, imageUrl?: st
 }
 
 async function publishToLinkedIn(accessToken: string, text: string, imageUrl?: string) {
+    const LINKEDIN_TIMEOUT = 20000; // 20 seconds timeout for each API call
+    
     try {
         // 1. Get user profile
         console.log('LinkedIn: Fetching user profile...');
         const profileRes = await axios.get('https://api.linkedin.com/v2/userinfo', {
-            headers: { Authorization: `Bearer ${accessToken}` }
+            headers: { Authorization: `Bearer ${accessToken}` },
+            timeout: LINKEDIN_TIMEOUT
         });
 
         if (!profileRes.data || !profileRes.data.sub) {
@@ -327,7 +338,8 @@ async function publishToLinkedIn(accessToken: string, text: string, imageUrl?: s
                         headers: {
                             Authorization: `Bearer ${accessToken}`,
                             'Content-Type': 'application/json'
-                        }
+                        },
+                        timeout: LINKEDIN_TIMEOUT
                     }
                 );
 
@@ -340,7 +352,8 @@ async function publishToLinkedIn(accessToken: string, text: string, imageUrl?: s
                 await axios.put(uploadUrl, buffer, {
                     headers: {
                         'Content-Type': 'application/octet-stream'
-                    }
+                    },
+                    timeout: LINKEDIN_TIMEOUT
                 });
 
                 console.log('LinkedIn: Image uploaded successfully, imageUrn:', imageUrn);
@@ -382,9 +395,12 @@ async function publishToLinkedIn(accessToken: string, text: string, imageUrl?: s
                     Authorization: `Bearer ${accessToken}`,
                     'Content-Type': 'application/json',
                     'X-Restli-Protocol-Version': '2.0.0'
-                }
+                },
+                timeout: LINKEDIN_TIMEOUT
             }
         );
+        
+        console.log('LinkedIn: Post created successfully');
         return response.data;
     } catch (error: any) {
         console.error('LinkedIn publishToLinkedIn function error:', error.response?.data || error.message);
