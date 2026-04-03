@@ -237,14 +237,28 @@ async function refreshTwitterToken(userId: string, refreshToken: string) {
 }
 
 async function getImageBuffer(imageUrl: string): Promise<{ buffer: Buffer, mime: string }> {
-    if (imageUrl.startsWith('data:image')) {
-        const mime = imageUrl.match(/data:([^;]+);base64/)?.[1] || 'image/png';
-        const base64Data = imageUrl.replace(/^data:image\/\w+;base64,/, '');
-        return { buffer: Buffer.from(base64Data, 'base64'), mime };
-    } else {
-        const response = await axios.get(imageUrl, { responseType: 'arraybuffer' });
-        const mime = response.headers['content-type'] || 'image/png';
-        return { buffer: Buffer.from(response.data), mime };
+    try {
+        if (imageUrl.startsWith('data:image')) {
+            console.log('Processing base64 image...');
+            const mime = imageUrl.match(/data:([^;]+);base64/)?.[1] || 'image/png';
+            const base64Data = imageUrl.replace(/^data:image\/\w+;base64,/, '');
+            const buffer = Buffer.from(base64Data, 'base64');
+            console.log(`Base64 image processed: ${buffer.length} bytes, mime: ${mime}`);
+            return { buffer, mime };
+        } else {
+            console.log(`Fetching image from URL: ${imageUrl}`);
+            const response = await axios.get(imageUrl, { 
+                responseType: 'arraybuffer',
+                timeout: 15000 
+            });
+            const mime = response.headers['content-type'] || 'image/png';
+            const buffer = Buffer.from(response.data);
+            console.log(`URL image fetched: ${buffer.length} bytes, mime: ${mime}`);
+            return { buffer, mime };
+        }
+    } catch (error: any) {
+        console.error('Error in getImageBuffer:', error.message);
+        throw new Error(`Failed to process image: ${error.message}`);
     }
 }
 
@@ -325,40 +339,59 @@ async function publishToLinkedIn(accessToken: string, text: string, imageUrl?: s
             console.log('LinkedIn: Initializing image upload...');
             try {
                 const { buffer } = await getImageBuffer(imageUrl);
+                console.log(`LinkedIn: Image buffer size: ${buffer.length} bytes`);
 
-                // Initialize upload via v2/images API (newer, works with v2/posts)
-                const registerRes = await axios.post(
-                    'https://api.linkedin.com/v2/images?action=initializeUpload',
-                    {
-                        initializeUploadRequest: {
-                            owner: userUrn
-                        }
-                    },
-                    {
-                        headers: {
-                            Authorization: `Bearer ${accessToken}`,
-                            'Content-Type': 'application/json'
+                // Check if image is too large (LinkedIn limit is 8MB)
+                if (buffer.length > 8 * 1024 * 1024) {
+                    console.warn('LinkedIn: Image exceeds 8MB limit, skipping image upload');
+                    imageUrn = null;
+                } else {
+                    // Initialize upload via v2/images API (newer, works with v2/posts)
+                    console.log('LinkedIn: Calling initializeUpload API...');
+                    const registerRes = await axios.post(
+                        'https://api.linkedin.com/v2/images?action=initializeUpload',
+                        {
+                            initializeUploadRequest: {
+                                owner: userUrn
+                            }
                         },
-                        timeout: LINKEDIN_TIMEOUT
-                    }
-                );
+                        {
+                            headers: {
+                                Authorization: `Bearer ${accessToken}`,
+                                'Content-Type': 'application/json'
+                            },
+                            timeout: LINKEDIN_TIMEOUT
+                        }
+                    );
 
-                const uploadUrl = registerRes.data.value.uploadUrl;
-                imageUrn = registerRes.data.value.image;
+                    console.log('LinkedIn: initializeUpload response:', JSON.stringify(registerRes.data));
 
-                console.log('LinkedIn: Uploading image to pre-signed URL...');
+                    const uploadUrl = registerRes.data.value.uploadUrl;
+                    imageUrn = registerRes.data.value.image;
 
-                // Important: NO Authorization header for the pre-signed URL
-                await axios.put(uploadUrl, buffer, {
-                    headers: {
-                        'Content-Type': 'application/octet-stream'
-                    },
-                    timeout: LINKEDIN_TIMEOUT
-                });
+                    console.log('LinkedIn: Uploading image to pre-signed URL...');
+                    console.log('LinkedIn: Upload URL:', uploadUrl);
 
-                console.log('LinkedIn: Image uploaded successfully, imageUrn:', imageUrn);
+                    // Important: NO Authorization header for the pre-signed URL
+                    const uploadResponse = await axios.put(uploadUrl, buffer, {
+                        headers: {
+                            'Content-Type': 'application/octet-stream'
+                        },
+                        timeout: LINKEDIN_TIMEOUT,
+                        maxBodyLength: Infinity,
+                        maxContentLength: Infinity
+                    });
+
+                    console.log('LinkedIn: Image upload response status:', uploadResponse.status);
+                    console.log('LinkedIn: Image uploaded successfully, imageUrn:', imageUrn);
+                }
             } catch (uploadError: any) {
-                console.error('LinkedIn media upload failed:', uploadError.response?.data || uploadError.message);
+                console.error('LinkedIn media upload failed:', {
+                    message: uploadError.message,
+                    response: uploadError.response?.data,
+                    status: uploadError.response?.status,
+                    statusText: uploadError.response?.statusText
+                });
                 // Continue with just text if image fails
                 imageUrn = null;
             }
