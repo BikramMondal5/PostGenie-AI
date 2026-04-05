@@ -47,7 +47,25 @@ export class PostGenieStack extends cdk.Stack {
       defaultBehavior: {
         origin: origins.S3BucketOrigin.withOriginAccessControl(frontendBucket),
         viewerProtocolPolicy: cloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
-        cachePolicy: cloudfront.CachePolicy.CACHING_OPTIMIZED,
+        cachePolicy: new cloudfront.CachePolicy(this, 'FrontendCachePolicy', {
+          cachePolicyName: 'PostGenie-Frontend-Cache',
+          comment: 'Cache policy for SPA with proper asset handling',
+          defaultTtl: cdk.Duration.days(1),
+          maxTtl: cdk.Duration.days(365),
+          minTtl: cdk.Duration.seconds(0),
+          enableAcceptEncodingGzip: true,
+          enableAcceptEncodingBrotli: true,
+          headerBehavior: cloudfront.CacheHeaderBehavior.none(),
+          queryStringBehavior: cloudfront.CacheQueryStringBehavior.none(),
+          cookieBehavior: cloudfront.CacheCookieBehavior.none(),
+        }),
+      },
+      additionalBehaviors: {
+        '/assets/*': {
+          origin: origins.S3BucketOrigin.withOriginAccessControl(frontendBucket),
+          viewerProtocolPolicy: cloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
+          cachePolicy: cloudfront.CachePolicy.CACHING_OPTIMIZED,
+        },
       },
       errorResponses: [
         {
