@@ -50,7 +50,7 @@ export class PostGenieStack extends cdk.Stack {
         cachePolicy: new cloudfront.CachePolicy(this, 'FrontendCachePolicy', {
           cachePolicyName: 'PostGenie-Frontend-Cache',
           comment: 'Cache policy for SPA with proper asset handling',
-          defaultTtl: cdk.Duration.days(1),
+          defaultTtl: cdk.Duration.hours(1),
           maxTtl: cdk.Duration.days(365),
           minTtl: cdk.Duration.seconds(0),
           enableAcceptEncodingGzip: true,
@@ -59,12 +59,27 @@ export class PostGenieStack extends cdk.Stack {
           queryStringBehavior: cloudfront.CacheQueryStringBehavior.none(),
           cookieBehavior: cloudfront.CacheCookieBehavior.none(),
         }),
+        responseHeadersPolicy: new cloudfront.ResponseHeadersPolicy(this, 'SecurityHeadersPolicy', {
+          responseHeadersPolicyName: 'PostGenie-Security-Headers',
+          securityHeadersBehavior: {
+            contentTypeOptions: { override: true },
+            frameOptions: { frameOption: cloudfront.HeadersFrameOption.DENY, override: true },
+            referrerPolicy: { referrerPolicy: cloudfront.HeadersReferrerPolicy.STRICT_ORIGIN_WHEN_CROSS_ORIGIN, override: true },
+            strictTransportSecurity: { 
+              accessControlMaxAge: cdk.Duration.seconds(31536000), 
+              includeSubdomains: true, 
+              override: true 
+            },
+            xssProtection: { protection: true, modeBlock: true, override: true },
+          },
+        }),
       },
       additionalBehaviors: {
         '/assets/*': {
           origin: origins.S3BucketOrigin.withOriginAccessControl(frontendBucket),
           viewerProtocolPolicy: cloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
           cachePolicy: cloudfront.CachePolicy.CACHING_OPTIMIZED,
+          compress: true,
         },
       },
       errorResponses: [
@@ -72,14 +87,17 @@ export class PostGenieStack extends cdk.Stack {
           httpStatus: 404,
           responseHttpStatus: 200,
           responsePagePath: '/index.html',
+          ttl: cdk.Duration.seconds(0),
         },
         {
           httpStatus: 403,
           responseHttpStatus: 200,
           responsePagePath: '/index.html',
+          ttl: cdk.Duration.seconds(0),
         },
       ],
       defaultRootObject: 'index.html',
+      enableLogging: true,
     });
 
     // Deploy Frontend to S3
@@ -88,6 +106,12 @@ export class PostGenieStack extends cdk.Stack {
       destinationBucket: frontendBucket,
       distribution,
       distributionPaths: ['/*'],
+      contentLanguage: 'en',
+      cacheControl: [
+        s3deploy.CacheControl.setPublic(),
+        s3deploy.CacheControl.maxAge(cdk.Duration.days(1)),
+      ],
+      prune: true,
     });
 
     // DynamoDB Tables
@@ -550,6 +574,11 @@ export class PostGenieStack extends cdk.Stack {
     new cdk.CfnOutput(this, 'FrontendUrl', {
       value: `https://${distribution.distributionDomainName}`,
       description: 'CloudFront Distribution Domain Name',
+    });
+
+    new cdk.CfnOutput(this, 'CloudFrontDistributionId', {
+      value: distribution.distributionId,
+      description: 'CloudFront Distribution ID (for cache invalidation)',
     });
 
     new cdk.CfnOutput(this, 'MediaBucketName', {
